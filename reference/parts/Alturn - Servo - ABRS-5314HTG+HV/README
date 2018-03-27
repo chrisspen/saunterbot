@@ -1,0 +1,72 @@
+Alturn USA Servo ABRS-5314HTG+HV
+================================
+
+http://alturn-usa.com/products/PDF/ABRS-5314HTG+HV.pdf
+
+https://www.ebay.com/itm/ABRS-5314HTG-Full-HV-Advance-Robot-Brushless-Digital-High-Voltage-HS-TG-/273065742269
+
+https://www.robot-r-us.com/vmchk/motor-robot-servo/digital-metal-gear-ultra-high-torque-robot-servo-53-kg.cm-/-280.html
+
+Weight:
+        
+    75grams / 2.60oz
+    without splined horn
+
+Dimensions:
+
+    43 × 32× 32.5 mm
+    (1.69 x 1.25 x 1.28 inch)
+
+Torque At 7.4V:
+
+    25.1kg/cm , 348oz/in
+
+Speed At 7.4V:
+
+    0.18sec / 60 deg at no load
+
+Torque At 8.3V:
+
+    32.4kg/cm , 466oz/in
+
+Speed At 8.3V:
+
+    0.16sec / 60 deg at no load
+
+Torque At 12V:
+
+    53.1kg/cm , 708z/in
+
+Speed At 12V:
+
+    0.14sec / 60 deg at no load
+
+Motor Type:
+
+    Japan Brushless motor
+
+Potentiometer Type  
+
+FSE11-4 Slider/indirect drive
+Amplifier Type  6A Treble Power MOS-FET
+Wire Info (Black)   - Negative
+Wire Info (Red) + Positive
+Wire Info (White)   S Single
+Gear Types  Stainless Steel
+Travel Degree   280 degree / 0.9us ~ 2.1us PWM
+Operation Voltage   7.4V ~ 12V (2S ~ 3S Li Poly)
+
+Cable pinout:
+
+    Note, it appears to have a "J" or Futaba connector, which has a tab indicating polarity.
+
+    Starting with notched end: white/red/black
+
+Testing:
+
+    At 5V, I found the servo to have an astonishing 280 degrees of rotation. However, it was also incredibly noisy.
+
+    At 10V, I found the servo performed almost the same, but had a noticable stutter once or twice a cycle.
+
+    input Voltage is 6.0 ~ 12.0V
+    best voltage is 7.4 ~ 8.4V

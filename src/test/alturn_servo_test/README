@@ -1,0 +1,5 @@
+Tests the 12V Alturn servo, sweeping the servo back and forth indefinitely, while blinking LED 13.
+
+Compile and upload with:
+
+    make && make upload
