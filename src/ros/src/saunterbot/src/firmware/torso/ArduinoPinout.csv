@@ -1,7 +1,7 @@
 Arduino Pin,Interruptable,Supported Modes,Mode,PWM,Function,Label,Label Color,Variable,Wire Color,Notes
 D0,,NA,NA,,USB,,,,,
 D1,,NA,NA,,USB,,,,,
-D2,,input/output,,1,,,,,,
+D2,,input/output,input,,IMU interrupt,INT,,,yellow,IMU interrupt.
 D3,,input/output,,1,,,,,,
 D4,,input/output,,1,,,,,,
 D5,,input/output,,1,,,,,,
@@ -12,14 +12,14 @@ D9,,input/output,,1,,,,,,
 D10,,input/output,,1,,,,,,
 D11,,input/output,,1,,,,,,
 D12,,input/output,,1,,,,,,
-D13,,input/output,,1,status LED,SL,,STATUS_LED_PIN,,"Note, has built-in LED, so can't reliably be used as an input."
-D14,,input/output,,,push button,PB1,,PUSH_BUTTON_PIN,,Simple push button.
+D13,,input/output,output,1,status LED,SL,,STATUS_LED_PIN,,"Note, has built-in LED, so can't reliably be used as an input."
+D14,,input/output,,,,,,,,
 D15,,input/output,,,,,,,,
 D16,,input/output,,,,,,,,
-D17,,input/output,,,,,,,,
+D17,,input/output,input,,push button,PB1,,PUSH_BUTTON_PIN,,Simple push button.
 D18,,input/output,,,,,,,,
 D19,,input/output,,,,,,,,
-D20,,input/output,,,SDA,,,,,I2C
-D21,,input/output,,,SCL,,,,,I2C
+D20,,input/output,I2C,,SDA,SDA,,,green,"I2C, IMU"
+D21,,input/output,I2C,,SCL,SCL,,,blue,"I2C, IMU"
 D22,,input/output,,,,,,,,
 D23,,,,,,,,,,

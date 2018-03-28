@@ -1,5 +1,7 @@
 http://wired.chillibasket.com/2015/01/calibrating-mpu6050/
 
+FOR CALIBRATION THE SENSOR MUST BE PLACED FLAT WITH Z POINTING UP.
+
 The sketch outputs the required accelerometer and gyroscope offsets through the serial monitor. All you have to do is plug them into the initialisation code at the start of your program, and you are good to go! Please note that the required offsets vary significantly from sensor to sensor, so you have to repeat the calibration program above for each MPU-6050 sensor you are using.
 
 Sensor readings with offsets:   7   -9  16375   0   -1  0
@@ -12,3 +14,17 @@ If calibration was succesful write down your offsets so you can set them in your
 Test these values in MPU6050-read.
 
 All of the values float a large amount at the start, especially the yaw data. This then stops after around 13 seconds, probably due to the completion of some auto-calibration process. I repeated this test a number of times and it seems that the sensor can take up to 40 seconds to complete its calibration, on some occasions. Therefore we should take this delay into account in our program. The robot should wait for around 40 seconds, before beginning to use the sensor and starting the main program.
+
+Build:
+
+    make && make upload
+
+Run:
+
+    make monitor
+
+To exit:
+
+    ctrl-a, then k, then "yes"
+
+Note, depending on your specific device, the "Calculating offsets..." part may take a few minutes.

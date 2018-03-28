@@ -1,0 +1,5 @@
+Catch-all package for anything involving Saunterbot IO processing.
+
+To rebuild actions
+
+    catkin_make --pkg saunterbot

@@ -1,0 +1,18 @@
+https://wiki.ros.org/catkin/Tutorials/create_a_workspace
+
+Initialized with:
+
+    source /opt/ros/kinetic/setup.bash
+    mkdir src
+    catkin_make
+
+To use the workspace, begin by sourcing our local setup.bash:
+
+    source devel/setup.bash
+
+To build the overlay:
+
+    cd src/ros
+    . ./setup.bash
+    cd ../overlay
+    catkin_make

@@ -1,0 +1,15 @@
+Scans all devices on the I2C bus and prints their addresses to the serial port.
+
+This is used to verify that the MPU6050 is correctly wired and responded to requests at the expected 0x68 address.
+
+Build:
+
+    makee && make upload
+
+Run:
+
+    make monitor
+
+To exit:
+
+    ctrl-a, then k, then "yes"
