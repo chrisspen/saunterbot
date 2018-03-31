@@ -41,7 +41,7 @@ module make_motors_alturn_abrs_5314htg_hv_holes(buffer=0, axle=0, flip_holes=1){
         
 }
 
-module make_motors_alturn_abrs_5314htg_hv(){
+module make_motors_alturn_abrs_5314htg_hv(show_axle_reference=1){
     difference(){
         // main body bounding box
         cube([32, 43, 32.5], center=true);
@@ -50,11 +50,12 @@ module make_motors_alturn_abrs_5314htg_hv(){
     }
     
     // axle centerpoint
+    if(show_axle_reference)
     color("red")
     translate([0,-43/2+12,0])
     cylinder(d=1, h=100, center=true, $fn=100);
 }
 
-//make_motors_alturn_abrs_5314htg_hv();
+make_motors_alturn_abrs_5314htg_hv(show_axle_reference=0);
 
-make_motors_alturn_abrs_5314htg_hv_horn();
+//make_motors_alturn_abrs_5314htg_hv_horn();
