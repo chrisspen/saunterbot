@@ -79,7 +79,14 @@ class AccelGyroSensor: public Sensor{
         VectorInt16 aa;         // [x, y, z]            accel sensor measurements
         VectorFloat gravity;    // [x, y, z]            gravity vector
 
+        bool changed = false;
+
     public:
+
+        unsigned long last_changed_read = 0;
+        
+        unsigned long update_count = 0;
+        unsigned long buffer_overflow_count = 0;
 
         // class default I2C address is 0x68
         // specific I2C addresses may be passed as a parameter here
@@ -91,6 +98,8 @@ class AccelGyroSensor: public Sensor{
         VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
         float euler[3];         // [psi, theta, phi]    Euler angle container
         float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+        
+        bool recieved_data = false;
 
         AccelGyroSensor(){
         }
@@ -141,7 +150,7 @@ class AccelGyroSensor: public Sensor{
         void update(){
             
             // Initialization failed, so do nothing.
-            if (!dmpReady) {
+            if (!is_ready()) {
                 return;
             }
             
@@ -151,6 +160,7 @@ class AccelGyroSensor: public Sensor{
             }
 
             // reset interrupt flag and get INT_STATUS byte
+            update_count += 1;
             mpuInterrupt = false;
             mpuIntStatus = mpu.getIntStatus();
 
@@ -162,6 +172,7 @@ class AccelGyroSensor: public Sensor{
                 // reset so we can continue cleanly
                 mpu.resetFIFO();
                 //Serial.println(F("FIFO overflow!"));
+                buffer_overflow_count += 1;
 
             // otherwise, check for DMP data ready interrupt (this should happen frequently)
             } else if (mpuIntStatus & 0x02) {
@@ -198,17 +209,26 @@ class AccelGyroSensor: public Sensor{
                 //Serial.print(ypr[1] * 180/M_PI);
                 //Serial.print("\t");
                 //Serial.println(ypr[2] * 180/M_PI);
+                
+                if(ypr[1] != 0){
+                    recieved_data = true;
+                }
 
                 // blink LED to indicate activity
                 //blinkState = !blinkState;
                 //digitalWrite(LED_PIN, blinkState);
+                
+                changed = true;
             }
 
         }
 
         bool get_and_clear_changed(){
-            //TODO
-            return false;
+            if(changed){
+                changed = false;
+                last_changed_read = millis();
+                return true;
+            }
         }
 
 };

@@ -2,6 +2,8 @@
 //use <tray.scad>;
 use <openscad-extra/src/countersink.scad>;
 
+//TODO:bring in mount holes for power board, too far out
+
 module make_dc_converter_holes(height=20, d=3){
     offset_x = 53.5/2+3/2;
     offset_y = 21/2;
@@ -15,9 +17,20 @@ module make_dc_converter_holes(height=20, d=3){
     cylinder(d=d, h=height, center=true, $fn=100);
 }
 
-module make_servo_board_holes(height=20, d=3){
-    offset_x = 53.5/2+3/2;
-    offset_y = 21/2;
+module mock_servo_board(){
+    difference(){
+        color("orange")
+        cube([60, 15, 2], center=true);
+            
+        color("red")
+        for(i=[-1:2:1])
+        translate([(60/2-1.7)*i,0,0])
+        cylinder(d=2.3, h=20, center=true, $fn=100);
+    }
+}
+
+module make_servo_board_holes(height=20, d=2){
+    offset_x = 60/2-1.7;
     translate([offset_x,0,0])
     cylinder(d=d, h=height, center=true, $fn=100);
     translate([-offset_x,0,0])
@@ -32,6 +45,8 @@ module make_dc_converter_tray(){
     //mount_y = 5*4;
     mount_y = 25+5/2;
     mount_z = 0.25;
+    
+    servo_board_y = 14;
 
     thickness = 5*0.5;
 
@@ -44,7 +59,8 @@ module make_dc_converter_tray(){
             translate([0,0,1.5])
             make_dc_converter_holes(d=5, height=5);
         
-            translate([0,12,0])    
+            // servo board mount stubs
+            translate([0,servo_board_y,0])    
             translate([0,0,1.5])
             make_servo_board_holes(d=5, height=5);
         }
@@ -54,7 +70,7 @@ module make_dc_converter_tray(){
         make_dc_converter_holes(d=2);
 
         // mount holes for servo board
-        translate([0,12,0])
+        translate([0,servo_board_y,0])
         make_servo_board_holes(d=2);
         
         // mount holes of tray to frame
@@ -86,17 +102,19 @@ module make_dc_converter_tray(){
 
 if(0){
     //mock servo power board
-    //60mm x 23mm
-    color("orange")
+    //60mm x 15mm with 2.3mm holes inset by 1.7mm
+    
     translate([0,14,10])
-    cube([60, 23, 2], center=true);
+    mock_servo_board();
 
     //mock regulator
     color("brown")
-    translate([0,-12,10])
-    cube([62, 27, 2], center=true);
+    translate([0,-10,10]){
+        cube([62, 27, 2], center=true);
+    }
 }
 
+if(0)
 color("blue")
 translate([0,0,-5])
 import("printable/pelvis_cross_support.stl");

@@ -1,0 +1,6 @@
+Created with:
+
+    sudo apt-get install python-dev libffi-dev
+    virtualenv .env
+    . .env/bin/activate
+    pip install pymunk pygame

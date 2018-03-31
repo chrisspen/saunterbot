@@ -14,7 +14,7 @@ MONITOR_PORT  = /dev/ttyACM0
 #MONITOR_PORT = $(shell list_arduinos.py torso)
 AVRDUDE_OPTS = -v
 #ARDUINO_LIBS = ros_lib Wire
-ARDUINO_LIBS = ros_lib Wire I2Cdev MPU6050
+ARDUINO_LIBS = ros_lib Wire I2Cdev MPU6050 Servo
 ARDUINO_SKETCHBOOK = $(realpath .)/lib
 USER_LIB_PATH = $(realpath .)/lib
 include /usr/share/arduino/Arduino.mk
