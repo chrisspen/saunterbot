@@ -9,7 +9,7 @@ import pymunk
 from pymunk import Vec2d
 import pymunk.pygame_util
 
-class PyramidDemo:        
+class PyramidDemo:
     def __init__(self):
         self.running = True
         self.drawing = True
@@ -25,10 +25,10 @@ class PyramidDemo:
         shape = pymunk.Segment(self.space.static_body, (5, 100), (595,100), 1.0)
         shape.friction = 1.0
         self.space.add(shape)
-        
+
         ### pyramid
         x=Vec2d(-270, 7.5) + (300,100)
-        y=Vec2d(0,0) 
+        y=Vec2d(0,0)
         deltaX=Vec2d(0.5625, 1.1)*20
         deltaY=Vec2d(1.125, 0.0)*20
 
@@ -44,21 +44,21 @@ class PyramidDemo:
                 shape = pymunk.Poly(body, points)
                 shape.friction = 1
                 self.space.add(body,shape)
-                
+
                 y += deltaY
 
             x += deltaX
-        
+
         ### draw options for drawing
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
 
     def run(self):
         while self.running:
-            self.loop() 
+            self.loop()
 
 
-    def loop(self):  
+    def loop(self):
         for event in pygame.event.get():
             if event.type == QUIT:
                 self.running = False
@@ -68,26 +68,26 @@ class PyramidDemo:
                 pygame.image.save(self.screen, "box2d_pyramid.png")
             elif event.type == KEYDOWN and event.key == K_d:
                 self.drawing = not self.drawing
-            
+
         fps = 30.
-        dt = 1.0/fps/5        
+        dt = 1.0/fps/5
         self.space.step(dt)
         if self.drawing:
             self.draw()
-        
+
         ### Tick clock and update fps in title
         self.clock.tick(fps)
         pygame.display.set_caption("fps: " + str(self.clock.get_fps()))
-        
+
     def draw(self):
         ### Clear the screen
         self.screen.fill(THECOLORS["white"])
-        
+
         ### Draw space
         self.space.debug_draw(self.draw_options)
 
         ### All done, lets flip the display
-        pygame.display.flip()        
+        pygame.display.flip()
 
 def main():
     demo = PyramidDemo()

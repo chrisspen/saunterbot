@@ -1,6 +1,6 @@
 """A L shape attached with a joint and constrained to not tip over.
 
-This example is also used in the Get Started Tutorial. 
+This example is also used in the Get Started Tutorial.
 """
 
 __docformat__ = "reStructuredText"

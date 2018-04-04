@@ -1,0 +1,13 @@
+Evaluate reinforcement learning algorithms using `gym` as a baseline.
+
+https://trollheaven.wordpress.com/2018/01/03/openai-gym-tutorial-with-a-single-neuron/
+http://kvfrans.com/simple-algoritms-for-solving-cartpole/
+https://github.com/openai/gym
+
+Setup:
+
+    apt-get install -y python-numpy python-dev cmake zlib1g-dev libjpeg-dev xvfb libav-tools xorg-dev python-opengl libboost-all-dev libsdl2-dev swig
+
+    virtualenv -p python3 .env
+    . .env/bin/activate
+    pip install gym pyglet

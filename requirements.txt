@@ -2,3 +2,4 @@ pyserial
 pyyaml
 rospkg
 catkin_pkg
+pylint

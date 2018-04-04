@@ -1,4 +1,4 @@
-""" Helper function fill_space for the draw demos. 
+""" Helper function fill_space for the draw demos.
 Adds a lot of stuff to a space.
 """
 
@@ -6,7 +6,7 @@ import pymunk
 
 def fill_space(space, custom_color=(255,255,0,255)):
     captions = []
-    
+
     ### Static
     captions.append(((50,680), "Static Shapes"))
 
@@ -15,51 +15,51 @@ def fill_space(space, custom_color=(255,255,0,255)):
                 ,pymunk.Segment(space.static_body, (20, 400), (20, 600), 1)
                 ,pymunk.Segment(space.static_body, (30, 400), (30, 600), 3)
                 ,pymunk.Segment(space.static_body, (50, 400), (50, 600), 5)
-                ]  
+                ]
     space.add(segments)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (40,630)
     b.angle = 3.14/7
     s = pymunk.Segment(b, (-30,0), (30,0), 2)
     space.add(s)
-    
+
     # Static Circles
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (120,630)
     s = pymunk.Circle(b, 10)
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (120,630)
     s = pymunk.Circle(b, 10, (-30,0))
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (120,560)
     b.angle = 3.14/4
     s = pymunk.Circle(b, 40)
     space.add(s)
-    
+
     # Static Polys
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (120,460)
     b.angle = 3.14/4
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)])
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (120,500)
     t = pymunk.Transform(ty=-100)
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)], t, radius=3)
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (50,430)
     t = pymunk.Transform(ty=-100)
     s = pymunk.Poly(b, [(0.0, -30.0), (19.0, -23.0), (30.0, -5.0), (26.0, 15.0), (10.0, 28.0), (-10.0, 28.0), (-26.0, 15.0), (-30.0, -5.0), (-19.0, -23.0)], t)
     space.add(s)
-    
+
     ### Kinematic
     captions.append(((220,680), "Kinematic Shapes"))
 
@@ -69,45 +69,45 @@ def fill_space(space, custom_color=(255,255,0,255)):
                 ,pymunk.Segment(b, (190, 400), (190, 600), 1)
                 ,pymunk.Segment(b, (200, 400), (200, 600), 3)
                 ,pymunk.Segment(b, (220, 400), (220, 600), 5)
-                ]  
+                ]
     space.add(segments)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (210,630)
     b.angle = 3.14/7
     s = pymunk.Segment(b, (-30,0), (30,0), 2)
     space.add(s)
-    
+
     # Kinematic Circles
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (290,630)
     s = pymunk.Circle(b, 10)
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (290,630)
     s = pymunk.Circle(b, 10, (-30,0))
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (290,560)
     b.angle = 3.14/4
     s = pymunk.Circle(b, 40)
     space.add(s)
-    
+
     # Kinematic Polys
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (290,460)
     b.angle = 3.14/4
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)])
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (290,500)
     t = pymunk.Transform(ty=-100)
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)], t, radius=3)
     space.add(s)
-    
+
     b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
     b.position = (230,430)
     t = pymunk.Transform(ty=-100)
@@ -123,52 +123,52 @@ def fill_space(space, custom_color=(255,255,0,255)):
                 pymunk.Segment(b, (360, 400), (360, 600), 1),
                 pymunk.Segment(b, (370, 400), (370, 600), 3),
                 pymunk.Segment(b, (390, 400), (390, 600), 5),
-                ]  
+                ]
     space.add(segments)
-    
+
     b = pymunk.Body(1,1)
     b.position = (380,630)
     b.angle = 3.14/7
     s = pymunk.Segment(b, (-30,0), (30,0), 2)
     space.add(s)
-    
+
     # Dynamic Circles
     b = pymunk.Body(1,1)
     b.position = (460,630)
     s = pymunk.Circle(b, 10)
     space.add(s)
-    
+
     b = pymunk.Body(1,1)
     b.position = (460,630)
     s = pymunk.Circle(b, 10, (-30,0))
     space.add(s)
-    
+
     b = pymunk.Body(1,1)
     b.position = (460,560)
     b.angle = 3.14/4
     s = pymunk.Circle(b, 40)
     space.add(s)
-    
+
     # Dynamic Polys
-    
+
     b = pymunk.Body(1,1)
     b.position = (460,460)
     b.angle = 3.14/4
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)])
     space.add(s)
-    
+
     b = pymunk.Body(1,1)
-    b.position = (460,500)    
+    b.position = (460,500)
     s = pymunk.Poly(b, [(0, -25),(30, 25),(-30, 25)], pymunk.Transform(ty=-100), radius=3)
     space.add(s)
-    
+
     b = pymunk.Body(1,1)
     b.position = (400,430)
     s = pymunk.Poly(b, [(0, -50), (50, 0), (30, 50),(-30, 50),(-50, 0)], pymunk.Transform(ty=-100))
     space.add(s)
-    
+
     ###Constraints
-    
+
     # PinJoints
     captions.append(((560,660), "Pin Joints"))
     a = pymunk.Body(1,1)
@@ -179,7 +179,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.PinJoint(a, b)
     space.add(sa, sb, a, b, j)
-    
+
     a = pymunk.Body(1,1)
     a.position = (550,550)
     sa = pymunk.Circle(a, 20)
@@ -188,7 +188,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.PinJoint(a, b, anchor_a=(0,20), anchor_b=(0,-20))
     space.add(sa, sb, a, b, j)
-    
+
     # SlideJoints
     captions.append(((560,490), "Slide Joint"))
     a = pymunk.Body(1,1)
@@ -199,7 +199,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.SlideJoint(a, b, anchor_a=(0,20), anchor_b=(0,-20), min=10, max=30)
     space.add(sa, sb, a, b, j)
-    
+
     # PivotJoints
     captions.append(((560,390), "Pivot Joint"))
     a = pymunk.Body(1,1)
@@ -210,7 +210,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.PivotJoint(a, b, (600,320))
     space.add(sa, sb, a, b, j)
-    
+
 
     # GrooveJoints
     captions.append(((760,660), "Groove Joint"))
@@ -222,7 +222,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.GrooveJoint(a, b, (790,610), (790,620), (840,620))
     space.add(sa, sb, a, b, j)
-    
+
     # DampedSpring
     captions.append(((760,550), "Damped Spring"))
     a = pymunk.Body(1,1)
@@ -233,7 +233,7 @@ def fill_space(space, custom_color=(255,255,0,255)):
     sb = pymunk.Circle(b, 20)
     j = pymunk.DampedSpring(a, b, (0,0), (0,10), 100, 1,1)
     space.add(sa, sb, a, b, j)
-    
+
     # DampedRotarySpring
     captions.append(((740,430), "Damped Rotary Spring"))
     a = pymunk.Body(1,1)
@@ -269,13 +269,13 @@ def fill_space(space, custom_color=(255,255,0,255)):
     b.angle = 3
     space.add(sa, sb, a, b, j)
 
-    # GearJoint and SimpleMotor omitted since they are similar to the already 
+    # GearJoint and SimpleMotor omitted since they are similar to the already
     # added joints
 
     # TODO: more stuff here :)
-    
+
     ### Other
-    
+
     # Objects in custom color
     captions.append(((150,150), "Custom Color (static & dynamic)"))
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -283,20 +283,20 @@ def fill_space(space, custom_color=(255,255,0,255)):
     s = pymunk.Circle(b, 40)
     s.color = custom_color
     space.add(s)
-    
+
     b = pymunk.Body(1, 1)
     b.position = (300, 200)
     s = pymunk.Circle(b, 40)
     s.color = custom_color
     space.add(s)
-    
+
     # Collision
     captions.append(((450,150), "Collisions"))
     b = pymunk.Body(body_type=pymunk.Body.STATIC)
     b.position = (470, 200)
     s = pymunk.Circle(b, 40)
     space.add(s)
-    
+
     b = pymunk.Body(1, 1)
     b.position = (500, 250)
     s = pymunk.Circle(b, 40)
