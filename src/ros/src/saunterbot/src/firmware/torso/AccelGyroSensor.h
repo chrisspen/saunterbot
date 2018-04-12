@@ -99,6 +99,10 @@ class AccelGyroSensor: public Sensor{
         float euler[3];         // [psi, theta, phi]    Euler angle container
         float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
         
+        unsigned long last_ypr_read_time = 0;
+        float ypr0[3];
+        float ypr_dot[3]; // angular velocity estimates
+        
         bool recieved_data = false;
 
         AccelGyroSensor(){
@@ -203,12 +207,24 @@ class AccelGyroSensor: public Sensor{
                 mpu.dmpGetGravity(&gravity, &q);
                 //mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
                 mpu.dmpGetYawPitchRollOnEnd(ypr, &q, &gravity);
+                
                 //Serial.print("\typr\t");
                 //Serial.print(ypr[0] * 180/M_PI);
                 //Serial.print("\t");
                 //Serial.print(ypr[1] * 180/M_PI);
                 //Serial.print("\t");
                 //Serial.println(ypr[2] * 180/M_PI);
+
+                // Update ypr velocity estimates. radians/sec
+                ypr_dot[0] = ((ypr[0] - ypr0[0])/float(millis() - last_ypr_read_time))*0.001;
+                ypr_dot[1] = ((ypr[1] - ypr0[1])/float(millis() - last_ypr_read_time))*0.001;
+                ypr_dot[2] = ((ypr[2] - ypr0[2])/float(millis() - last_ypr_read_time))*0.001;
+
+                // Record variables for next iteration.
+                ypr0[0] = ypr[0];
+                ypr0[1] = ypr[1];
+                ypr0[2] = ypr[2];
+                last_ypr_read_time = millis();
                 
                 if(ypr[1] != 0){
                     recieved_data = true;

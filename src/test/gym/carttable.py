@@ -53,6 +53,9 @@ class CartTableEnv(gym.Env):
         self.viewer = None
         self.state = None
 
+        self.yeta_error = 0.
+        self.yeta_error_cnt = 0
+
         self.steps_beyond_done = None
 
     def seed(self, seed=None):
@@ -139,11 +142,29 @@ class CartTableEnv(gym.Env):
             self.steps_beyond_done += 1
             reward = 0.0
 
-        return np.array(self.state), reward, done, {}
+        self.yeta_error += abs(theta)
+        self.yeta_error_cnt += 1
+        yeta_error_mean = 1 - self.yeta_error/self.yeta_error_cnt/math.pi # should be bounded to [0:1]
+
+        # 1=no angle, 0=worse angle
+        # off_center_score = 1 - abs(theta)/(math.pi/2.)
+
+        # weight = 1.0 # only look at raw step rewarad
+        # weight = 0.33 # step count 1/3 as important as angle
+        # weight = 0.5 # step count equally as important as angle
+        # final_score = weight*reward + (1-weight)*off_center_score
+        # final_score = reward + off_center_score*2
+        # final_score = reward*5/10. + off_center_score*5/10.
+
+        final_score = reward + yeta_error_mean
+
+        return np.array(self.state), final_score, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
+        self.yeta_error = 0.
+        self.yeta_error_cnt = 0
         return np.array(self.state)
 
     def render(self, mode='human'):
@@ -157,11 +178,11 @@ class CartTableEnv(gym.Env):
         polelen = scale * 1.0
         cartwidth = 50.0
         cartheight = 30.0
-        
+
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
-            
+
             self.trans = rendering.Transform()
 
             # Draw pole.

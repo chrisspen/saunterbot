@@ -11,7 +11,12 @@ Usage:
 from __future__ import print_function
 import os, sys, csv
 
-device = sys.argv[1]
+TORSO = 'torso'
+
+try:
+    device = sys.argv[1]
+except IndexError:
+    device = TORSO
 
 fn = '%s/ArduinoPinout.csv' % device
 fout = open('%s/ArduinoPinout.h' % device, 'w')

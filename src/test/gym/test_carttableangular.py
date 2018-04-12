@@ -6,28 +6,28 @@ import sys
 import numpy as np
 import gym
 # env = gym.make('CartTable-v0')
-from carttable import CartTableEnv; env = CartTableEnv()
+from carttableangular import CartTableAngularEnv; env = CartTableAngularEnv()
 
 # REWARD_THRESHOLD = 2000
 REWARD_THRESHOLD = 5000
 
-def demo(parameters=None):
-    # env = CartTableEnv()
-    run_episode(env, parameters, max_steps=REWARD_THRESHOLD*10, show=True)
+def demo(parameters=None, keep=False):
+    run_episode(env, parameters, max_steps=REWARD_THRESHOLD*10, show=True, keep=keep)
 
 
-def run_episode(env, parameters, max_steps=REWARD_THRESHOLD, show=False):
+def run_episode(env, parameters, max_steps=REWARD_THRESHOLD, show=False, keep=False):
     if parameters is None:
         parameters = np.random.rand(4) * 2 - 1
     observation = env.reset()
     totalreward = 0
+    action = 0
     for _ in range(max_steps):
         action = 0 if np.matmul(parameters, observation) < 0 else 1
         observation, reward, done, info = env.step(action)
         totalreward += reward
         if show:
             env.render()
-        if done:
+        if done and not keep:
             break
     if show:
         print('totalreward:', totalreward)
@@ -35,15 +35,22 @@ def run_episode(env, parameters, max_steps=REWARD_THRESHOLD, show=False):
 
 
 def random_search():
-    # env = CartTableEnv()
     bestparams = None  
     bestreward = 0
     max_episodes = 10000
     for _ in range(max_episodes):
         sys.stdout.write('\rEvaluating %i of %i' % (_, max_episodes))
         sys.stdout.flush()
-        parameters = np.random.rand(4) * 2 - 1
-        reward = run_episode(env, parameters)
+        
+        # Test each parameter set several times to see how it reacts to different inputs.
+        reward_runs = 10
+        reward_sum = 0
+        for _ in range(reward_runs):
+            parameters = np.random.rand(4) * 2 - 1
+            reward = run_episode(env, parameters)
+            reward_sum += reward
+        reward = reward_sum/float(reward_runs)
+
         if reward > bestreward:
             bestreward = reward
             bestparams = parameters
@@ -124,35 +131,15 @@ def multi_hill_search():
     print('bestparams:', list(bestparams))
     return bestreward, bestparams
 
-# With reward+angle equal weight.
-#   Average steps until solution is found = (6+11+16+65+20)/5.=23.6
-#   Fatal = 1/5.
-# With reward+angle*2 weight.
-#   Average steps until solution is found = (48+27+4+40+11)/5.=26
-#   Fatal = 2/5.
-score, params = random_search()
+# score, params = random_search()
+# demo(params)
 
-# With reward+angle equal weight.
-#   Average steps until solution is found = (9999+11+0+9999+9999)/5.=6002
-#   Fatal = 5/5.
 # score, params = hill_search()
 
-# With reward+angle equal weight.
-#   Average steps until solution is found = (33+18+19+6+9)/5.=17
-#   Fatal = 2/5.
-# With reward+angle*2 weight.
-#   Average steps until solution is found = (99+28+0+4+5)/5.=27
-#   Fatal = 2/5.
 # score, params = multi_hill_search()
 
-# Perfect off-center.
-# params = [0.41209637496354823, 0.25646063685734277, 0.38971277755298406, 0.6932977114472907]
+demo([-0.6741055081288734, 0.12195637193897135, 0.0502067848682084, 0.46858856540807947],
+    keep=True)
 
-# Perfect upright.
-# params = [0.08106616824157165, 0.014354243708667891, 0.3847436956637298, 0.21260153934738635]
-
-# Oscillating
-# params = [0.08103526868575472, 0.258454589596842, 0.207211081933806, 0.9400320442911136]
-
-# params = [-0.5613529384922931, -0.2873107168263489, -0.3866124699733069, -0.2620484249535875]
-demo(parameters=params)
+# Perfect with zero weight offset.
+# demo([0.699945500154137, 0.9978736341836465, -0.02037230500207654, -0.4869280256800115])
