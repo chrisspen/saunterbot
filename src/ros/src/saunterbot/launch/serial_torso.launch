@@ -3,7 +3,10 @@ roslaunch saunterbot serial_torso.launch
 -->
 <launch>
     <group ns="torso_arduino">
+<!--
         <node pkg="rosserial_arduino" type="serial_node.py" name="serial_node" output="screen">
+-->
+        <node pkg="saunterbot" type="serial_node.py" name="serial_node" output="screen">
 
             <!--<param name="~port" command="list_arduinos.py torso" />-->
             <param name="~port" value="/dev/ttyACM0" />
@@ -13,8 +16,8 @@ roslaunch saunterbot serial_torso.launch
             
             <!--
             2018-4-11 CS Is this necessary?
-            <param name="~auto_reset_timeout" value="30" />
             -->
+            <param name="~auto_reset_timeout" value="30" />
 
         </node>
     </group>

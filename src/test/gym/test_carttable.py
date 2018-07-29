@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Based on http://kvfrans.com/simple-algoritms-for-solving-cartpole/
 """

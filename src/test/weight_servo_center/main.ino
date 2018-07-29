@@ -1,18 +1,6 @@
 #include <Servo.h>
 
-//#define SERVO_WRITE write
-//#define MIN_POSITION 0
-//#define MAX_POSITION 180
-
 #define SERVO_WRITE writeMicroseconds
-//#define MIN_POSITION 1000
-//#define MAX_POSITION 2000
-#define MIN_POSITION 1000-500
-#define MAX_POSITION 2000+500
-
-// Amount subtracted from the min/max end points.
-#define SUB_POSITION 250
-
 #define LED_PIN 13
 #define SERVO_PIN 9
 

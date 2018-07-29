@@ -70,6 +70,7 @@ public:
         }
         _calibrate_state = SERVO_CALIBRATE_POS_GO_CW;
         _calibrate_state_change_time = millis();
+        power_on();
     }
     
     void power_on(){
@@ -125,6 +126,7 @@ public:
         // We switch to this 2.56V reference (Mega only) because our servo potentiometer outputs, at most, a 1.7V signal
         // which results in a very 200 position range of readings when using the default 5V reference.
         // By lowering the reference, we increase the accuracy of the ADC reading and double the number of positions.
+        // https://www.arduino.cc/reference/en/language/functions/analog-io/analogreference/
         analogReference(INTERNAL2V56);
         // Take our reading, performing a simple filter that minimizes noise
         // by taking 5 readings, excluding the lower and upper extremes and then averaging the rest.

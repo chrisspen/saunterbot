@@ -6,7 +6,7 @@ use <motors_alturn.scad>;
 use <screw.scad>;
 use <sensor_rotary.scad>;
 
-module leg_upper(){
+module leg_upper(show_axle=1){
     
     difference(){
         // main mass
@@ -85,8 +85,13 @@ module leg_upper(){
         
     }
     
-    
-    
+    if(show_axle)
+    color("green")
+    translate([100/2-15,0,2.5+2.5])
+    translate([0,0,-5])
+    rotate([180,0,0])
+    cylinder(d=1, h=100, center=true, $fn=50);
+
 }
 
 leg_upper();

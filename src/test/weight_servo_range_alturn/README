@@ -1,0 +1,7 @@
+Sweeps the servo across its range when a button is pressed.
+
+Specialized for use with the heavy duty Alturn servo.
+
+Compile and upload with:
+
+    make && make upload

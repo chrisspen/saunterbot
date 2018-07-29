@@ -1,26 +1,41 @@
-Arduino Pin,Interruptable,Supported Modes,Mode,PWM,Function,Label,Label Color,Variable,Wire Color,Notes
-D0,,NA,NA,,USB,,,,,
-D1,,NA,NA,,USB,,,,,
-D2,,input/output,input,,IMU interrupt,INT,,,yellow,IMU interrupt.
-D3,,input/output,,1,,,,,,
-D4,,input/output,,1,,,,,,
-D5,,input/output,,1,,,,,,
-D6,,input/output,,1,,,,,,
-D7,,input/output,output,1,servo hip right,,,SERVO_HIP_RIGHT_PIN,yellow,
-D8,,input/output,output,1,servo hip left,,,SERVO_HIP_LEFT_PIN,yellow,
-D9,,input/output,,1,,,,,,
-D10,,input/output,,1,,,,,,
-D11,,input/output,output,1,servo weight shifter,WS,,SERVO_WEIGHT_SHIFTER_OUTPUT_PIN,yellow,
-D12,,input/output,,1,,,,,,
-D13,,input/output,output,1,status LED,SL,,STATUS_LED_PIN,,"Note, has built-in LED, so can't reliably be used as an input."
-D14,,input/output,,,,,,,,
-D15,,input/output,,,,,,,,
-D16,,input/output,,,,,,,,
-D17,,input/output,input,,push button,PB1,,PUSH_BUTTON_PIN,,Simple push button.
-D18,,input/output,,,,,,,,
-D19,,input/output,,,,,,,,
-D20,,input/output,I2C,,SDA,SDA,,,green,"I2C, IMU"
-D21,,input/output,I2C,,SCL,SCL,,,blue,"I2C, IMU"
-D22,,input/output,,,,,,,,
-D23,,,,,,,,,,
-A4,,,input,,servo weight shifter position input,WP,,SERVO_WEIGHT_SHIFTER_INPUT_PIN,green,
+Arduino Pin,Interruptable,Supported Modes,Has ADC,Mode,PWM,Function,Label,Label Color,Variable,Wire Color,Notes
+D0,,NA,,NA,,USB,,,,,
+D1,,NA,,NA,,USB,,,,,
+D2,,input/output,,input,,IMU interrupt,INT,,,yellow,IMU interrupt.
+D3,,input/output,,,1,,,,,,
+D4,,input/output,,,1,,,,,,
+D5,,input/output,,,1,,,,,,
+D6,,input/output,,,1,,,,,,
+D7,,input/output,,output,1,servo hip right,SHR,,SERVO_HIP_RIGHT_PIN,yellow,
+D8,,input/output,,output,1,servo hip left,SHL,,SERVO_HIP_LEFT_PIN,yellow,
+D9,,input/output,,,1,,,,,,
+D10,,input/output,,,1,,,,,,
+D11,,input/output,,,1,,,,,,
+D12,,input/output,,,1,,,,,,
+D13,,input/output,,output,1,status LED,SL,,STATUS_LED_PIN,,"Note, has built-in LED, so can't reliably be used as an input."
+D14,,input/output,,,,,,,,,
+D15,,input/output,,,,,,,,,
+D16,,input/output,,,,,,,,,
+D17,,input/output,,input,,push button,PB1,,PUSH_BUTTON_PIN,,Simple push button.
+D18,,input/output,,,,,,,,,
+D19,,input/output,,,,,,,,,
+D20,,input/output,,I2C,,SDA,SDA,,,green,"I2C, IMU"
+D21,,input/output,,I2C,,SCL,SCL,,,blue,"I2C, IMU"
+D22,,input/output,,,,,,,,,
+D23,,input/output,,,,,,,,,
+A0,,input/output,1,,,,,,,,
+A1,,input/output,1,,,,,,,,
+A2,,input/output,1,,,,,,,,
+A3,,input/output,1,,,,,,,,
+A4,,input/output,1,input,,feedback hip right,FHR,,FEEDBACK_HIP_RIGHT,green,
+A5,,input/output,1,input,,feedback hip left,FHL,,FEEDBACK_HIP_LEFT,green,
+A6,,input/output,1,input,,feedback knee right,FKR,,FEEDBACK_KNEE_RIGHT,green,
+A7,,input/output,1,input,,feedback knee left,FKL,,FEEDBACK_KNEE_LEFT,green,
+A8,,input/output,1,,,,,,,,
+A9,,input/output,1,,,,,,,,
+A10,,input/output,1,,,,,,,,
+A11,,input/output,1,,,,,,,,
+A12,,input/output,1,,,,,,,,
+A13,,input/output,1,,,,,,,,
+A14,,input/output,1,,,,,,,,
+A15,,input/output,1,,,,,,,,

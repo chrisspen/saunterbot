@@ -29,37 +29,34 @@
 
 // Absolute min of Alturn servos, taking into account physical limits of legs.
 // TODO:add more leg clearance? this limitation is mostly due to the right-knee running into the torso
-#define SERVO_LOWER_PHY_RIGHT 1275 // THIS IS A HARD LIMIT FOR THE RIGHT. Passing this will block the servo and possibly damage it!!!
-#define SERVO_LOWER_PHY_LEFT 1275 // practical limit, going beyond this won't damage the leg, but the leg won't respond
-
-// The Alturn servo position where the body is relatively balanced.
-#define SERVO_CENTER_PHY_RIGHT 1400 //TODO?
+#define SERVO_LOWER_PHY_RIGHT 1000//1275 // THIS IS A HARD LIMIT FOR THE RIGHT. Passing this will block the servo and possibly damage it!!!
+#define SERVO_LOWER_PHY_LEFT 1000//1275 // practical limit, going beyond this won't damage the leg, but the leg won't respond
 
 // Absolute max of Alturn servos, taking into account physical limits of legs.
-#define SERVO_UPPER_PHY_RIGHT 1525
-#define SERVO_UPPER_PHY_LEFT 1725 // THIS IS A HARD LIMIT FOR THE LEFT. Passing this will block the servo and possibly damage it!!!
+#define SERVO_UPPER_PHY_RIGHT 2000//1525
+#define SERVO_UPPER_PHY_LEFT 2000//1725 // THIS IS A HARD LIMIT FOR THE LEFT. Passing this will block the servo and possibly damage it!!!
 
 // Amount of offset in degrees so the right servo matches the left.
-#define SERVO_HIP_LEFT_OFFSET 20
+#define SERVO_HIP_LEFT_OFFSET 0 //20
 
 // The pitch angle above which the servos shutoff for safety.
 #define SERVO_SHUTOFF_BACKWARDS_ANGLE 15
 #define SERVO_SHUTOFF_FORWARDS_ANGLE -15
 
 // The upper (leg's back) most practical range for balancing in the context of the right leg.
-#define SERVO_BALANCING_UPPER 1460
+//#define SERVO_BALANCING_UPPER 1460
 
 // The position where the leg's are roughly underneath the center-of-mass in the context of the right leg.
-#define SERVO_BALANCING_CENTER 1375
+//#define SERVO_BALANCING_CENTER 1375
 
 // The lower (leg's forward) most practical range for balancing in the context of the right leg.
-#define SERVO_BALANCING_LOWER 1290
+//#define SERVO_BALANCING_LOWER 1290
 
 // The ratio used to convert degrees to a relative servo position.
-#define SERVO_DEGREE_TO_POSITION 170.0/43.0
+//#define SERVO_DEGREE_TO_POSITION 170.0/43.0
 
-#define MOVE_WEIGHT_LEFT 0
-#define MOVE_WEIGHT_RIGHT 1
+//#define MOVE_WEIGHT_LEFT 0
+//#define MOVE_WEIGHT_RIGHT 1
 
 // On left:
 //1500->1750 upper max => CW
@@ -96,18 +93,22 @@ char d_str[20];
 // Persistent variables.
 struct config_t
 {
-    int weight_shifter_lower_pos_feedback;
-    int weight_shifter_upper_pos_feedback;
+    int servo_hip_right_lower_pos_feedback;
+    int servo_hip_right_upper_pos_feedback;
+    int servo_hip_left_lower_pos_feedback;
+    int servo_hip_left_upper_pos_feedback;
 } configuration;
 
-Servo servo_hip_right;
-Servo servo_hip_left;
-ServoController servo_weight_shifter = ServoController(SERVO_WEIGHT_SHIFTER_OUTPUT_PIN, 1000-100, 2000+100, 1500, SERVO_WEIGHT_SHIFTER_INPUT_PIN);
+//Servo servo_hip_right;
+//Servo servo_hip_left;
+//ServoController servo_weight_shifter = ServoController(SERVO_WEIGHT_SHIFTER_OUTPUT_PIN, 1000-100, 2000+100, 1500, SERVO_WEIGHT_SHIFTER_INPUT_PIN);
+ServoController servo_hip_right_controller = ServoController(SERVO_HIP_RIGHT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_RIGHT);
+ServoController servo_hip_left_controller = ServoController(SERVO_HIP_LEFT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_LEFT);
 BalanceController balance_controller = BalanceController();
 int balance_action;
 
-int servo_hip_right_pos = SERVO_CENTER_PHY_RIGHT;
-int servo_hip_left_pos = SERVO_CENTER_PHY_RIGHT;
+int servo_hip_right_pos = SERVO_CENTER_ABS;
+int servo_hip_left_pos = SERVO_CENTER_ABS;
 int center = 90;
 int range = 30;
 int offset = 0;
@@ -145,33 +146,52 @@ long ftol(double v) {
     return static_cast<long>(v*1000);
 }
 
+void enable_hip_servos() {
+    servo_hips_active = true;
+    servo_last_set_time = millis();
+}
+
+void disable_hip_servos() {
+    servo_hips_active = false;
+    servo_hip_right_controller.power_off();
+    servo_hip_left_controller.power_off();
+}
+
 void set_hip_position(int pos, bool verbose=false){
     // Since the left and right legs are mirror images of each other, the effective position range is a combination of the hard limits of each.
     // The lower bound is the max hard limit of lower bounds.
     // The upper bound is the min hard limit of the upper bounds.
-    if(pos >= SERVO_LOWER_PHY_RIGHT && pos <= SERVO_UPPER_PHY_LEFT){
+    if(pos >= SERVO_LOWER_ABS && pos <= SERVO_UPPER_ABS){
 
-        servo_hip_right_pos = constrain(pos, SERVO_LOWER_PHY_RIGHT, SERVO_UPPER_PHY_RIGHT);
-        servo_hip_left_pos = constrain(2 * SERVO_CENTER_ABS - pos + SERVO_HIP_LEFT_OFFSET, SERVO_LOWER_PHY_LEFT, SERVO_UPPER_PHY_LEFT);
+        servo_hip_right_pos = pos;
+        servo_hip_left_pos = constrain(2 * SERVO_CENTER_ABS - pos + SERVO_HIP_LEFT_OFFSET, SERVO_LOWER_ABS, SERVO_UPPER_ABS);
         
-        servo_hip_right.writeMicroseconds(servo_hip_right_pos);
-        servo_hip_left.writeMicroseconds(servo_hip_left_pos);
+        //~ servo_hip_right.writeMicroseconds(servo_hip_right_pos);
+        //~ servo_hip_left.writeMicroseconds(servo_hip_left_pos);
 
-        servo_hip_right.attach(SERVO_HIP_RIGHT_PIN);
-        servo_hip_left.attach(SERVO_HIP_LEFT_PIN);
+        //~ servo_hip_right.attach(SERVO_HIP_RIGHT_PIN);
+        //~ servo_hip_left.attach(SERVO_HIP_LEFT_PIN);
 
-        servo_hips_active = true;
-        servo_last_set_time = millis();
-        if(verbose) nh.loginfo("Servo position set.");
+        servo_hip_right_controller.set_position(servo_hip_right_pos);
+        servo_hip_left_controller.set_position(servo_hip_left_pos);
+
+        servo_hip_right_controller.power_on();
+        servo_hip_left_controller.power_on();
+
+        enable_hip_servos();
+        if(verbose){
+            nh.loginfo("Servo position set.");
+        }
     }else{
-        if(verbose) nh.loginfo("Invalid servo position. Must be between SERVO_LOWER_PHY_RIGHT and SERVO_UPPER_PHY_LEFT.");
+        if(verbose){
+            snprintf(buffer, MAX_OUT_CHARS, "Invalid servo position. Must be between %i and %i.", SERVO_LOWER_ABS, SERVO_UPPER_ABS);
+            nh.loginfo(buffer);
+        }
     }
 }
 
 void reset_hip_position(){
-    //set_hip_position(SERVO_CENTER_PHY_RIGHT); // reset hip angle
-    //set_hip_position(SERVO_CENTER_ABS); // reset hip angle
-    set_hip_position(SERVO_BALANCING_CENTER); // reset hip angle
+    set_hip_position(SERVO_CENTER_ABS); // reset hip angle
     
 }
 
@@ -193,12 +213,21 @@ void on_servo_hip_set(const std_msgs::Int16& msg) {
 }
 ros::Subscriber<std_msgs::Int16> on_servo_hip_set_sub("servo/hip/set", &on_servo_hip_set);
 
-// rostopic pub --once /torso_arduino/weight/calibrate std_msgs/Empty
-void on_weight_calibrate(const std_msgs::Empty& msg) {
-    servo_weight_shifter.calibrate_position_feedback();
-    nh.loginfo("Beginning weight shifter calibration.");
+// rostopic pub --once /torso_arduino/hip/right/calibrate std_msgs/Empty
+void on_hip_right_calibrate(const std_msgs::Empty& msg) {
+    enable_hip_servos();
+    servo_hip_right_controller.calibrate_position_feedback();
+    nh.loginfo("Beginning right hip calibration.");
 }
-ros::Subscriber<std_msgs::Empty> on_weight_calibrate_sub("weight/calibrate", &on_weight_calibrate);
+ros::Subscriber<std_msgs::Empty> on_hip_right_calibrate_sub("hip/right/calibrate", &on_hip_right_calibrate);
+
+// rostopic pub --once /torso_arduino/hip/left/calibrate std_msgs/Empty
+void on_hip_left_calibrate(const std_msgs::Empty& msg) {
+    enable_hip_servos();
+    servo_hip_left_controller.calibrate_position_feedback();
+    nh.loginfo("Beginning left hip calibration.");
+}
+ros::Subscriber<std_msgs::Empty> on_hip_left_calibrate_sub("hip/left/calibrate", &on_hip_left_calibrate);
 
 // move mass backwards
 // rostopic pub --once /torso_arduino/weight/pos/set std_msgs/Int16 900
@@ -206,13 +235,13 @@ ros::Subscriber<std_msgs::Empty> on_weight_calibrate_sub("weight/calibrate", &on
 // rostopic pub --once /torso_arduino/weight/pos/set std_msgs/Int16 1500
 // move mas forward
 // rostopic pub --once /torso_arduino/weight/pos/set std_msgs/Int16 2100
-void on_weight_position_set(const std_msgs::Int16& msg) {
-    servo_weight_shifter.set_position(msg.data);
-    servo_weight_shifter.power_on();
-    snprintf(buffer, MAX_OUT_CHARS, "Weight position set: %i", servo_weight_shifter.get_target_position());
-    nh.loginfo(buffer);
-}
-ros::Subscriber<std_msgs::Int16> on_weight_position_set_sub("weight/pos/set", &on_weight_position_set);
+//void on_weight_position_set(const std_msgs::Int16& msg) {
+    //~ servo_weight_shifter.set_position(msg.data);
+    //~ servo_weight_shifter.power_on();
+    //~ snprintf(buffer, MAX_OUT_CHARS, "Weight position set: %i", servo_weight_shifter.get_target_position());
+    //~ nh.loginfo(buffer);
+//~ }
+//~ ros::Subscriber<std_msgs::Int16> on_weight_position_set_sub("weight/pos/set", &on_weight_position_set);
 
 // rostopic pub --once /torso_arduino/servo/hip/pid/set std_msgs/Float32MultiArray "{layout:{dim:[], data_offset: 0}, data:[0, 0, 0]}"
 // rostopic pub --once /torso_arduino/servo/hip/pid/set std_msgs/Float32MultiArray "{layout:{dim:[], data_offset: 0}, data:[0.95, 0.15, 0.1]}"
@@ -264,9 +293,11 @@ void setup() {
     nh.initNode();
     nh.subscribe(on_servo_hip_set_sub);
     //nh.subscribe(on_hip_pid_set_sub);
-    nh.subscribe(on_weight_position_set_sub);
+    //~ nh.subscribe(on_weight_position_set_sub);
     nh.subscribe(on_balance_controller_set_sub);
-    nh.subscribe(on_weight_calibrate_sub);
+    //nh.subscribe(on_weight_calibrate_sub);
+    nh.subscribe(on_hip_right_calibrate_sub);
+    nh.subscribe(on_hip_left_calibrate_sub);
 
     ag_sensor.initialize();
     if(!ag_sensor.is_ready()){
@@ -276,10 +307,17 @@ void setup() {
     reset_hip_position();
     //hip_pid_controller.reset();
     
-    servo_weight_shifter.set_feedback_positions(
-        configuration.weight_shifter_lower_pos_feedback,
-        configuration.weight_shifter_upper_pos_feedback);
-    servo_weight_shifter.power_on();
+    servo_hip_left_controller.set_feedback_positions(
+        configuration.servo_hip_left_lower_pos_feedback,
+        configuration.servo_hip_left_upper_pos_feedback
+    );
+    
+    servo_hip_right_controller.set_feedback_positions(
+        configuration.servo_hip_right_lower_pos_feedback,
+        configuration.servo_hip_right_upper_pos_feedback
+    );
+
+    //~ servo_weight_shifter.power_on();
     //ws1.attach(SERVO_WEIGHT_SHIFTER_OUTPUT_PIN);
 
 }
@@ -328,19 +366,19 @@ void loop() {
     // Keep our pitch balanced.
     if(balancing_enabled){
         // Keep the servos active while we're balancing, so the legs remain straight and stiff.
-        servo_hips_active = true;
+        //servo_hips_active = true;
         // Get our weight action.
-        balance_action = balance_controller.step(
-            double(servo_weight_shifter.get_actual_position()-1500)/double(2100-1500), // weight's linear position (servo pos 900:2100=>-1:+1)
-            servo_weight_shifter.get_velocity(), // weight's velocity (servo pos/sec)
-            ag_sensor.ypr[1], // torso's pitch angle (rad)
-            ag_sensor.ypr_dot[1] // torso's pitch angular velocity (rad/sec)
-        );
-        if(balance_action == MOVE_WEIGHT_LEFT){
-            servo_weight_shifter.set_min_position();
-        }else if(balance_action == MOVE_WEIGHT_RIGHT){
-            servo_weight_shifter.set_max_position();
-        }
+        //~ balance_action = balance_controller.step(
+            //~ double(servo_weight_shifter.get_actual_position()-1500)/double(2100-1500), // weight's linear position (servo pos 900:2100=>-1:+1)
+            //~ servo_weight_shifter.get_velocity(), // weight's velocity (servo pos/sec)
+            //~ ag_sensor.ypr[1], // torso's pitch angle (rad)
+            //~ ag_sensor.ypr_dot[1] // torso's pitch angular velocity (rad/sec)
+        //~ );
+        //~ if(balance_action == MOVE_WEIGHT_LEFT){
+            //~ servo_weight_shifter.set_min_position();
+        //~ }else if(balance_action == MOVE_WEIGHT_RIGHT){
+            //~ servo_weight_shifter.set_max_position();
+        //~ }
     }
     
     // Update hip position to balance pitch angle.
@@ -376,10 +414,8 @@ void loop() {
     // Turn off servos if unused for more than a few seconds.
     // This is a safety measure. Even when idling, and not under load, the servos will get quite warm.
     // When under load, the servos can get considerably hot.
-    if(servo_hips_active && millis() - servo_last_set_time > 2000){
-        servo_hips_active = false;
-        servo_hip_right.detach();
-        servo_hip_left.detach();
+    if(servo_hips_active && millis() - servo_last_set_time > 10000){
+        disable_hip_servos();
         nh.loginfo("Hip servos disabled due to inactivity.");
     }
     
@@ -397,33 +433,46 @@ void loop() {
         //dtostrf(hip_pid_controller.dTerm, 5, 3, z2_str);     
 
         snprintf(buffer, MAX_OUT_CHARS,
-            "balancing_enabled=%i, angle_safety_shutoff=%i, current_hip_angle=%i, yaw=%s pitch=%s roll=%s pitch_dot=%s",
-            balancing_enabled, angle_safety_shutoff, current_hip_angle, a_str, b_str, c_str, d_str);
-        nh.loginfo(buffer);
-        
-        dtostrf(servo_weight_shifter.get_velocity(), 15, 6, a_str);
-        snprintf(buffer, MAX_OUT_CHARS,
-            "calibration_state=%i millis()=%lu state_change_time=%lu weight lower=%i weight upper=%i weight pos=%i x_vel=%s",
-            servo_weight_shifter.get_calibrate_state(),
-            millis(),
-            servo_weight_shifter._calibrate_state_change_time,
-            servo_weight_shifter.get_lower_feedback_position(),
-            servo_weight_shifter.get_upper_feedback_position(),
-            servo_weight_shifter.get_actual_position(),
-            a_str
+            "balancing_enabled=%i, angle_safety_shutoff=%i, current_hip_angle=%i, yaw=%s pitch=%s roll=%s pitch_dot=%s hl1=%i hl2=%i hr1=%i hr2=%i",
+            balancing_enabled, angle_safety_shutoff, current_hip_angle, a_str, b_str, c_str, d_str,
+            servo_hip_left_controller.get_lower_feedback_position(), servo_hip_left_controller.get_upper_feedback_position(),
+            servo_hip_right_controller.get_lower_feedback_position(), servo_hip_right_controller.get_upper_feedback_position()
         );
         nh.loginfo(buffer);
+        
+        //~ dtostrf(servo_weight_shifter.get_velocity(), 15, 6, a_str);
+        //~ snprintf(buffer, MAX_OUT_CHARS,
+            //~ "calibration_state=%i millis()=%lu state_change_time=%lu weight lower=%i weight upper=%i weight pos=%i x_vel=%s",
+            //~ servo_weight_shifter.get_calibrate_state(),
+            //~ millis(),
+            //~ servo_weight_shifter._calibrate_state_change_time,
+            //~ servo_weight_shifter.get_lower_feedback_position(),
+            //~ servo_weight_shifter.get_upper_feedback_position(),
+            //~ servo_weight_shifter.get_actual_position(),
+            //~ a_str
+        //~ );
+        //~ nh.loginfo(buffer);
          
     }
+
+    servo_hip_left_controller.update();
+    servo_hip_right_controller.update();
         
     nh.spinOnce();
     
-    servo_weight_shifter.update();
-    if(!servo_weight_shifter.saved){
+    //~ servo_weight_shifter.update();
+    if(!servo_hip_left_controller.saved || !servo_hip_right_controller.saved){
         // If calibration variables have changed, then save them.
-        configuration.weight_shifter_lower_pos_feedback = servo_weight_shifter.get_lower_feedback_position();
-        configuration.weight_shifter_upper_pos_feedback = servo_weight_shifter.get_upper_feedback_position();
-        servo_weight_shifter.saved = true;
+            
+        configuration.servo_hip_left_lower_pos_feedback = servo_hip_left_controller.get_lower_feedback_position();
+        configuration.servo_hip_left_upper_pos_feedback = servo_hip_left_controller.get_upper_feedback_position();
+        
+        configuration.servo_hip_right_lower_pos_feedback = servo_hip_right_controller.get_lower_feedback_position();
+        configuration.servo_hip_right_upper_pos_feedback = servo_hip_right_controller.get_upper_feedback_position();
+        
+        servo_hip_left_controller.saved = true;
+        servo_hip_right_controller.saved = true;
+
         EEPROM_writeAnything(0, configuration);
     }
 
