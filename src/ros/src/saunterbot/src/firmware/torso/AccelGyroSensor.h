@@ -150,6 +150,12 @@ class AccelGyroSensor: public Sensor{
                 packetSize = mpu.dmpGetFIFOPacketSize();
             }
         }
+        
+        void reset() {
+            mpu.reset();
+            delay(50);
+            initialize();
+        }
 
         void update(){
             

@@ -146,6 +146,10 @@ long ftol(double v) {
     return static_cast<long>(v*1000);
 }
 
+int calculate_foot_degrees(int hip_degrees, int body_degrees) {
+    return body_degrees - hip_degrees;
+}
+
 void enable_hip_servos() {
     servo_hips_active = true;
     servo_last_set_time = millis();
@@ -229,6 +233,14 @@ void on_hip_left_calibrate(const std_msgs::Empty& msg) {
 }
 ros::Subscriber<std_msgs::Empty> on_hip_left_calibrate_sub("hip/left/calibrate", &on_hip_left_calibrate);
 
+// rostopic pub --once /torso_arduino/imu/reset std_msgs/Empty
+void on_imu_reset(const std_msgs::Empty& msg) {
+    nh.loginfo("Beginning IMU reset...");
+    ag_sensor.reset();
+    nh.loginfo("IMU reset!");
+}
+ros::Subscriber<std_msgs::Empty> on_imu_reset_sub("imu/reset", &on_imu_reset);
+
 // move mass backwards
 // rostopic pub --once /torso_arduino/weight/pos/set std_msgs/Int16 900
 // center mass
@@ -298,6 +310,7 @@ void setup() {
     //nh.subscribe(on_weight_calibrate_sub);
     nh.subscribe(on_hip_right_calibrate_sub);
     nh.subscribe(on_hip_left_calibrate_sub);
+    nh.subscribe(on_imu_reset_sub);
 
     ag_sensor.initialize();
     if(!ag_sensor.is_ready()){
@@ -433,8 +446,10 @@ void loop() {
         //dtostrf(hip_pid_controller.dTerm, 5, 3, z2_str);     
 
         snprintf(buffer, MAX_OUT_CHARS,
-            "balancing_enabled=%i, angle_safety_shutoff=%i, current_hip_angle=%i, yaw=%s pitch=%s roll=%s pitch_dot=%s hl1=%i hl2=%i hr1=%i hr2=%i",
-            balancing_enabled, angle_safety_shutoff, current_hip_angle, a_str, b_str, c_str, d_str,
+            "balancing_enabled=%i, angle_safety_shutoff=%i, hip_angle=%i, foot_angle=%i, yaw=%s pitch=%s roll=%s pitch_dot=%s hl1=%i hl2=%i hr1=%i hr2=%i",
+            balancing_enabled, angle_safety_shutoff, servo_hip_right_controller.get_actual_position_degrees(),
+            calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), ag_sensor.ypr[1] * 180/M_PI),
+            a_str, b_str, c_str, d_str,
             servo_hip_left_controller.get_lower_feedback_position(), servo_hip_left_controller.get_upper_feedback_position(),
             servo_hip_right_controller.get_lower_feedback_position(), servo_hip_right_controller.get_upper_feedback_position()
         );

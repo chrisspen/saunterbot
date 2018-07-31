@@ -18,6 +18,8 @@ private:
     int _feedback_pin = -1;
     int _lower_pos;
     int _upper_pos;
+    int _lower_degree;
+    int _upper_degree;
     int _pos;
     int _default_pos;
     unsigned long _pos_set_time = 0;
@@ -49,7 +51,7 @@ public:
     
     bool saved = true;
 
-    ServoController(int pin, int lower_pos, int upper_pos, int default_pos=1500, int feedback_pin=0){
+    ServoController(int pin, int lower_pos, int upper_pos, int default_pos=1500, int feedback_pin=0, int lower_degree=-45, int upper_degree=45){
         _pin = pin;
         _lower_pos = lower_pos;
         _lower_pos_feedback = lower_pos;
@@ -58,6 +60,8 @@ public:
         _pos = default_pos;
         _default_pos = default_pos;
         _feedback_pin = feedback_pin;
+        _lower_degree = lower_degree;
+        _upper_degree = upper_degree;
         if(_feedback_pin > 0){
             feedback_enabled = true;
         }
@@ -103,6 +107,10 @@ public:
     
     int get_actual_position(){
         return _pos_feedback;
+    }
+    
+    int get_actual_position_degrees(){
+        return map(_pos_feedback, _lower_pos, _upper_pos, _lower_degree, _upper_degree);
     }
     
     int get_lower_feedback_position(){
