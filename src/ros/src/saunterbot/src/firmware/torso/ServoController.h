@@ -35,7 +35,7 @@ private:
     unsigned long _last_pos_feedback_time = 0; // ms
     int _lower_pos_feedback;
     int _upper_pos_feedback;
-    double _pos_velocity = 0;
+    float _pos_velocity = 0;
 
     int adc_min_value = 10000;
     int adc_max_value = 0;
@@ -155,7 +155,10 @@ public:
         return adc_value;
     }
     
-    double get_velocity(){
+    float get_velocity(){
+        if(isnan(_pos_velocity)){
+            return 0;
+        }
         return _pos_velocity;
     }
     
@@ -203,8 +206,9 @@ public:
                 _pos_feedback = map(_pos_feedback, _lower_pos_feedback, _upper_pos_feedback, _lower_pos, _upper_pos);
                 
                 // Calculate velocity, in positions/second.
-                _pos_velocity = double(_pos_feedback - _last_pos_feedback)/double(millis() - _last_pos_feedback_time)*0.001;
-                
+                //_pos_velocity = double(_pos_feedback - _last_pos_feedback)/double(millis() - _last_pos_feedback_time)*0.001;
+                _pos_velocity = float(map(_pos_feedback, _lower_pos, _upper_pos, _lower_degree, _upper_degree) - map(_last_pos_feedback, _lower_pos, _upper_pos, _lower_degree, _upper_degree))/float(millis() - _last_pos_feedback_time)*0.001;
+
                 // Save value for next iteration.
                 _last_pos_feedback = _pos_feedback;
                 _last_pos_feedback_time = millis();

@@ -6,6 +6,7 @@
 #include <std_msgs/Int16.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float32.h>
 
 #include <Servo.h>
 
@@ -15,6 +16,7 @@
 #include "ServoController.h"
 #include "BalanceController.h"
 #include "EEPROMAnything.h"
+#include "VelocityTracker.h"
 
 #define MAX_OUT_CHARS 255
 
@@ -55,9 +57,6 @@
 // The ratio used to convert degrees to a relative servo position.
 //#define SERVO_DEGREE_TO_POSITION 170.0/43.0
 
-//#define MOVE_WEIGHT_LEFT 0
-//#define MOVE_WEIGHT_RIGHT 1
-
 // On left:
 //1500->1750 upper max => CW
 //1500->1100 lower min => CCW
@@ -72,6 +71,8 @@ ros::NodeHandle nh;
 
 AccelGyroSensor ag_sensor = AccelGyroSensor();
 
+VelocityTracker foot_tracker = VelocityTracker();
+
 //PIDController hip_pid_controller = PIDController(SERVO_LOWER_PHY_RIGHT, SERVO_UPPER_PHY_LEFT);
 //PIDController hip_pid_controller = PIDController(SERVO_BALANCING_LOWER, SERVO_BALANCING_UPPER, SERVO_DEGREE_TO_POSITION);
 
@@ -82,13 +83,17 @@ unsigned long last_ag_read_time = 0;
 unsigned long mpu_read_count = 0;
 unsigned long last_blink_time = 0;
 
-char a_str[20];
-char b_str[20];
-char c_str[20];
+char yaw_str[20];
+char pitch_str[20];
+char roll_str[20];
 char d_str[20];
+char e_str[20];
 //char x2_str[10];
 //char y2_str[10];
 //char z2_str[10];
+
+std_msgs::Float32MultiArray float32ma_msg;
+//float state_data[] = {0, 0, 0, 0};
 
 // Persistent variables.
 struct config_t
@@ -97,6 +102,10 @@ struct config_t
     int servo_hip_right_upper_pos_feedback;
     int servo_hip_left_lower_pos_feedback;
     int servo_hip_left_upper_pos_feedback;
+    float w_yeta;
+    float w_yeta_dot;
+    float w_theta;
+    float w_theta_dot;
 } configuration;
 
 //Servo servo_hip_right;
@@ -125,6 +134,7 @@ unsigned long servo_last_set_time = 0;
 unsigned long balance_last_output_time = 0;
 unsigned long balancing_started_time = 0;
 unsigned long balancing_stopped_time = 0;
+unsigned long last_state_publish_time = 0;
 
 bool last_pushbutton_state = true;
 
@@ -140,14 +150,14 @@ bool servo_hips_active = false;
 
 float pitch_degrees = 0;
 
-long ftol(double v) {
+long ftol(float v) {
     // Assumes 3 places of decimal precision.
     // Assumes the host interpreting this number will first divide by 1000.
     return static_cast<long>(v*1000);
 }
 
 int calculate_foot_degrees(int hip_degrees, int body_degrees) {
-    return body_degrees - hip_degrees;
+    return (body_degrees - hip_degrees);
 }
 
 void enable_hip_servos() {
@@ -159,6 +169,24 @@ void disable_hip_servos() {
     servo_hips_active = false;
     servo_hip_right_controller.power_off();
     servo_hip_left_controller.power_off();
+}
+
+void save_configuration(){
+    
+    configuration.servo_hip_left_lower_pos_feedback = servo_hip_left_controller.get_lower_feedback_position();
+    configuration.servo_hip_left_upper_pos_feedback = servo_hip_left_controller.get_upper_feedback_position();
+    configuration.servo_hip_right_lower_pos_feedback = servo_hip_right_controller.get_lower_feedback_position();
+    configuration.servo_hip_right_upper_pos_feedback = servo_hip_right_controller.get_upper_feedback_position();
+
+    configuration.w_yeta = balance_controller.w_yeta;
+    configuration.w_yeta_dot = balance_controller.w_yeta_dot;
+    configuration.w_theta = balance_controller.w_theta;
+    configuration.w_theta_dot = balance_controller.w_theta_dot;
+
+    servo_hip_left_controller.saved = true;
+    servo_hip_right_controller.saved = true;
+
+    EEPROM_writeAnything(0, configuration);
 }
 
 void set_hip_position(int pos, bool verbose=false){
@@ -192,6 +220,10 @@ void set_hip_position(int pos, bool verbose=false){
             nh.loginfo(buffer);
         }
     }
+}
+
+void increment_hip_position(int amount){
+    set_hip_position(servo_hip_right_controller.get_target_position() + amount);
 }
 
 void reset_hip_position(){
@@ -277,17 +309,39 @@ ros::Subscriber<std_msgs::Empty> on_imu_reset_sub("imu/reset", &on_imu_reset);
 // rostopic pub --once /torso_arduino/weight/param/set std_msgs/Float32MultiArray "{layout:{dim:[], data_offset: 0}, data:[0, 0, 1, 0]}"
 void on_balance_controller_set(const std_msgs::Float32MultiArray& msg) {
     balance_controller.set_weights(msg.data[0], msg.data[1], msg.data[2], msg.data[3]);
+    save_configuration();
     nh.loginfo("Balance controller parameters changed.");
-    dtostrf(msg.data[0], 5, 3, a_str);
-    dtostrf(msg.data[1], 5, 3, b_str);
-    dtostrf(msg.data[2], 5, 3, c_str);
+    dtostrf(msg.data[0], 5, 3, yaw_str);
+    dtostrf(msg.data[1], 5, 3, pitch_str);
+    dtostrf(msg.data[2], 5, 3, roll_str);
     dtostrf(msg.data[3], 5, 3, d_str);
-    snprintf(buffer, MAX_OUT_CHARS, "a = %s b = %s c = %s d = %s", a_str, b_str, c_str, d_str);
+    snprintf(buffer, MAX_OUT_CHARS, "a = %s b = %s c = %s d = %s", yaw_str, pitch_str, roll_str, d_str);
     nh.loginfo(buffer);
 }
 ros::Subscriber<std_msgs::Float32MultiArray> on_balance_controller_set_sub("weight/param/set", &on_balance_controller_set);
 
+ros::Publisher state_publisher = ros::Publisher("state", &float32ma_msg);
+
+float get_yeta(){
+    return servo_hip_right_controller.get_actual_position_degrees() * M_PI/180; // yeta, hip angle, radians
+}
+
+float get_yeta_dot(){
+    return servo_hip_right_controller.get_velocity() * M_PI/180; // yeta_dot, hip velocity, radians/second
+}
+
+float get_theta(){
+    return foot_tracker.get_position() * M_PI/180; // theta, foot angle, radians
+}
+
+float get_theta_dot(){
+    return foot_tracker.get_velocity() * M_PI/180; // theta_dot, foot velocity, radians/second
+}
+
 void setup() {
+    
+    float32ma_msg.data = reinterpret_cast<float *>(malloc(sizeof(float)*4));
+    float32ma_msg.data_length = 4;
     
     EEPROM_readAnything(0, configuration);
     
@@ -312,6 +366,8 @@ void setup() {
     nh.subscribe(on_hip_left_calibrate_sub);
     nh.subscribe(on_imu_reset_sub);
 
+    nh.advertise(state_publisher);
+
     ag_sensor.initialize();
     if(!ag_sensor.is_ready()){
         nh.loginfo("MPU6050 initialization failed.");
@@ -330,8 +386,7 @@ void setup() {
         configuration.servo_hip_right_upper_pos_feedback
     );
 
-    //~ servo_weight_shifter.power_on();
-    //ws1.attach(SERVO_WEIGHT_SHIFTER_OUTPUT_PIN);
+    balance_controller.set_weights(configuration.w_yeta, configuration.w_yeta_dot, configuration.w_theta, configuration.w_theta_dot);
 
 }
 
@@ -355,10 +410,8 @@ void loop() {
             if(balancing_enabled){
                 nh.loginfo("Balancing disabled.");
                 reset_hip_position();
-                //hip_pid_controller.reset();
             }else{
                 nh.loginfo("Balancing enabled.");
-                //hip_pid_controller.reset();
                 balancing_started_time = millis();
             }
             balancing_enabled = !balancing_enabled;
@@ -369,7 +422,7 @@ void loop() {
     ag_sensor.update();
     
     // If our angle is off by more than a set threshold, than it means we've fallen over, so stop updating the servos as a safety mechanism.
-    pitch_degrees = ag_sensor.ypr[1] * 180/M_PI;
+    pitch_degrees = -ag_sensor.ypr[1] * 180/M_PI;
     angle_safety_shutoff = pitch_degrees > SERVO_SHUTOFF_BACKWARDS_ANGLE || pitch_degrees < SERVO_SHUTOFF_FORWARDS_ANGLE;
     if(angle_safety_shutoff && balancing_enabled){
         balancing_enabled = false;
@@ -381,48 +434,13 @@ void loop() {
         // Keep the servos active while we're balancing, so the legs remain straight and stiff.
         //servo_hips_active = true;
         // Get our weight action.
-        //~ balance_action = balance_controller.step(
-            //~ double(servo_weight_shifter.get_actual_position()-1500)/double(2100-1500), // weight's linear position (servo pos 900:2100=>-1:+1)
-            //~ servo_weight_shifter.get_velocity(), // weight's velocity (servo pos/sec)
-            //~ ag_sensor.ypr[1], // torso's pitch angle (rad)
-            //~ ag_sensor.ypr_dot[1] // torso's pitch angular velocity (rad/sec)
-        //~ );
-        //~ if(balance_action == MOVE_WEIGHT_LEFT){
-            //~ servo_weight_shifter.set_min_position();
-        //~ }else if(balance_action == MOVE_WEIGHT_RIGHT){
-            //~ servo_weight_shifter.set_max_position();
-        //~ }
+        balance_action = balance_controller.step(get_yeta(), get_yeta_dot(), get_theta(), get_theta_dot());
+        if(balance_action == MOVE_FORWARD){
+            increment_hip_position(1);
+        }else if(balance_action == MOVE_BACKWARD){
+            increment_hip_position(-1);
+        }
     }
-    
-    // Update hip position to balance pitch angle.
-    // Our goal is to keep the pitch degrees as close to 0 as possible by adjusting the hip position.
-    // If we're tilting backwards (pitch of positive degrees), the PID should return a lower value (e.g. 1290) to lean forward as a counterbalance.
-    // If we're tilting forwards (pitch of negative degrees), the PID should return a higher value (e.g. 1450) to lean backwards as a counterbalance.
-    //if(balancing_enabled && hip_pid_controller.is_ready()){
-        //// Balance as long as we have a pitch and roll of less than 45 degrees.
-        //if(!angle_safety_shutoff){
-            //// Get hip angle and set if it's changed since last iteration.
-            //current_hip_angle = hip_pid_controller.get_value(pitch_degrees);
-            //if(current_hip_angle != last_hip_angle){
-                //set_hip_position(current_hip_angle);
-                
-                ////dtostrf(hip_pid_controller.Kp, 5, 3, x_str);
-                ////dtostrf(hip_pid_controller.Ki, 5, 3, y_str);
-                ////dtostrf(hip_pid_controller.Kd, 5, 3, z_str);
-                ////snprintf(buffer, MAX_OUT_CHARS, "Kp=%s Ki=%s Kd=%s", x_str, y_str, z_str);
-                ////nh.loginfo(buffer);             
-
-                ////dtostrf(hip_pid_controller.pTerm, 5, 3, x_str);
-                ////dtostrf(hip_pid_controller.iTerm, 5, 3, y_str);
-                ////dtostrf(hip_pid_controller.dTerm, 5, 3, z_str);
-                ////snprintf(buffer, MAX_OUT_CHARS, "pTerm=%s iTerm=%s dTerm=%s", x_str, y_str, z_str);
-                ////nh.loginfo(buffer);
-                
-                ////snprintf(buffer, MAX_OUT_CHARS, "current_hip_angle=%i", current_hip_angle);
-                ////nh.loginfo(buffer);
-            //}
-        //}
-    //}
 
     // Turn off servos if unused for more than a few seconds.
     // This is a safety measure. Even when idling, and not under load, the servos will get quite warm.
@@ -433,63 +451,72 @@ void loop() {
     }
     
     // DEBUG output.
-    if(millis() - last_ag_read_time >= 1000){
-        last_ag_read_time = millis();
+    //if(millis() - last_ag_read_time >= 1000){
+        //last_ag_read_time = millis();
     
-        dtostrf(ag_sensor.ypr[0] * 180/M_PI, 5, 3, a_str);
-        dtostrf(ag_sensor.ypr[1] * 180/M_PI, 5, 3, b_str);
-        dtostrf(ag_sensor.ypr[2] * 180/M_PI, 5, 3, c_str);
-        dtostrf(ag_sensor.ypr_dot[1] * 180/M_PI*1000, 15, 6, d_str);
+        //dtostrf(ag_sensor.ypr[0] * 180/M_PI, 5, 3, yaw_str);
+        //dtostrf(pitch_degrees, 5, 3, pitch_str);//dtostrf(-ag_sensor.ypr[1] * 180/M_PI, 5, 3, pitch_str);
+        //dtostrf(ag_sensor.ypr[2] * 180/M_PI, 5, 3, roll_str);
+        //dtostrf(ag_sensor.ypr_dot[1] * 180/M_PI*1000, 15, 6, d_str);
+        //dtostrf(foot_tracker.get_velocity(), 15, 6, e_str); 
 
-        //dtostrf(hip_pid_controller.pTerm, 5, 3, x2_str);
-        //dtostrf(hip_pid_controller.iTerm, 5, 3, y2_str);
-        //dtostrf(hip_pid_controller.dTerm, 5, 3, z2_str);     
-
-        snprintf(buffer, MAX_OUT_CHARS,
-            "balancing_enabled=%i, angle_safety_shutoff=%i, hip_angle=%i, foot_angle=%i, yaw=%s pitch=%s roll=%s pitch_dot=%s hl1=%i hl2=%i hr1=%i hr2=%i",
-            balancing_enabled, angle_safety_shutoff, servo_hip_right_controller.get_actual_position_degrees(),
-            calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), ag_sensor.ypr[1] * 180/M_PI),
-            a_str, b_str, c_str, d_str,
-            servo_hip_left_controller.get_lower_feedback_position(), servo_hip_left_controller.get_upper_feedback_position(),
-            servo_hip_right_controller.get_lower_feedback_position(), servo_hip_right_controller.get_upper_feedback_position()
-        );
-        nh.loginfo(buffer);
+        //snprintf(buffer, MAX_OUT_CHARS,
+            //"balancing_enabled=%i, angle_safety_shutoff=%i, hip_angle=%i foot_angle=%i foot_vel=%s yaw=%s pitch=%s roll=%s pitch_dot=%s hl1=%i hl2=%i hr1=%i hr2=%i",
+            //balancing_enabled,
+            //angle_safety_shutoff,
+            //servo_hip_right_controller.get_actual_position_degrees(),
+            ////calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), ag_sensor.ypr[1] * 180/M_PI),
+            //foot_tracker.get_position(),
+            //e_str,//foot_tracker.get_velocity(),
+            //yaw_str, // yaw
+            //pitch_str, // pitch
+            //roll_str, // roll
+            //d_str,
+            //servo_hip_left_controller.get_lower_feedback_position(),
+            //servo_hip_left_controller.get_upper_feedback_position(),
+            //servo_hip_right_controller.get_lower_feedback_position(),
+            //servo_hip_right_controller.get_upper_feedback_position()
+        //);
+        //nh.loginfo(buffer);
         
-        //~ dtostrf(servo_weight_shifter.get_velocity(), 15, 6, a_str);
-        //~ snprintf(buffer, MAX_OUT_CHARS,
-            //~ "calibration_state=%i millis()=%lu state_change_time=%lu weight lower=%i weight upper=%i weight pos=%i x_vel=%s",
-            //~ servo_weight_shifter.get_calibrate_state(),
-            //~ millis(),
-            //~ servo_weight_shifter._calibrate_state_change_time,
-            //~ servo_weight_shifter.get_lower_feedback_position(),
-            //~ servo_weight_shifter.get_upper_feedback_position(),
-            //~ servo_weight_shifter.get_actual_position(),
-            //~ a_str
-        //~ );
-        //~ nh.loginfo(buffer);
+        ////~ dtostrf(servo_weight_shifter.get_velocity(), 15, 6, yaw_str);
+        ////~ snprintf(buffer, MAX_OUT_CHARS,
+            ////~ "calibration_state=%i millis()=%lu state_change_time=%lu weight lower=%i weight upper=%i weight pos=%i x_vel=%s",
+            ////~ servo_weight_shifter.get_calibrate_state(),
+            ////~ millis(),
+            ////~ servo_weight_shifter._calibrate_state_change_time,
+            ////~ servo_weight_shifter.get_lower_feedback_position(),
+            ////~ servo_weight_shifter.get_upper_feedback_position(),
+            ////~ servo_weight_shifter.get_actual_position(),
+            ////~ yaw_str
+        ////~ );
+        ////~ nh.loginfo(buffer);
          
-    }
+    //}
 
     servo_hip_left_controller.update();
     servo_hip_right_controller.update();
-        
+
+    foot_tracker.update_position(calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), pitch_degrees));
+    
     nh.spinOnce();
     
     //~ servo_weight_shifter.update();
     if(!servo_hip_left_controller.saved || !servo_hip_right_controller.saved){
         // If calibration variables have changed, then save them.
-            
-        configuration.servo_hip_left_lower_pos_feedback = servo_hip_left_controller.get_lower_feedback_position();
-        configuration.servo_hip_left_upper_pos_feedback = servo_hip_left_controller.get_upper_feedback_position();
-        
-        configuration.servo_hip_right_lower_pos_feedback = servo_hip_right_controller.get_lower_feedback_position();
-        configuration.servo_hip_right_upper_pos_feedback = servo_hip_right_controller.get_upper_feedback_position();
-        
-        servo_hip_left_controller.saved = true;
-        servo_hip_right_controller.saved = true;
-
-        EEPROM_writeAnything(0, configuration);
+        save_configuration();
     }
+
+    // Publish state.
+    if(millis() - last_state_publish_time >= 100){ // publish 10 times a second
+        float32ma_msg.data[0] = get_yeta();//servo_hip_right_controller.get_actual_position_degrees() * M_PI/180; // yeta, hip angle, radians
+        float32ma_msg.data[1] = get_yeta_dot();//servo_hip_right_controller.get_velocity() * M_PI/180; // yeta_dot, hip velocity, radians/second
+        float32ma_msg.data[2] = get_theta();//foot_tracker.get_position() * M_PI/180; // theta, foot angle, radians
+        float32ma_msg.data[3] = get_theta_dot();//foot_tracker.get_velocity() * M_PI/180; // theta_dot, foot velocity, radians/second
+        state_publisher.publish(&float32ma_msg);
+        last_state_publish_time = millis();
+    }
+    nh.spinOnce();
 
     last_hip_angle = current_hip_angle;
     disabling_balancing = false;
