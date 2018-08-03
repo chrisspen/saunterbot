@@ -3,6 +3,7 @@
  */
  
 #include <ros.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Int16.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float32MultiArray.h>
@@ -42,8 +43,8 @@
 #define SERVO_HIP_LEFT_OFFSET 0 //20
 
 // The pitch angle above which the servos shutoff for safety.
-#define SERVO_SHUTOFF_BACKWARDS_ANGLE 15
-#define SERVO_SHUTOFF_FORWARDS_ANGLE -15
+#define SERVO_SHUTOFF_BACKWARDS_ANGLE 20
+#define SERVO_SHUTOFF_FORWARDS_ANGLE -20
 
 // The upper (leg's back) most practical range for balancing in the context of the right leg.
 //#define SERVO_BALANCING_UPPER 1460
@@ -92,6 +93,7 @@ char e_str[20];
 //char y2_str[10];
 //char z2_str[10];
 
+std_msgs::Bool bool_msg;
 std_msgs::Float32MultiArray float32ma_msg;
 //float state_data[] = {0, 0, 0, 0};
 
@@ -231,6 +233,40 @@ void reset_hip_position(){
     
 }
 
+// rostopic echo /torso_arduino/balancing/get
+ros::Publisher balancing_get_publisher = ros::Publisher("balancing/get", &bool_msg);
+
+void enable_balancing(){
+    if(!balancing_enabled){
+        nh.loginfo("Balancing enabled.");
+        balancing_started_time = millis();
+        balancing_enabled = true;    
+        bool_msg.data = balancing_enabled;
+        balancing_get_publisher.publish(&bool_msg);
+    }
+}
+
+void disable_balancing(){
+    if(balancing_enabled){
+        nh.loginfo("Balancing disabled.");
+        reset_hip_position();
+        balancing_stopped_time = millis();
+        balancing_enabled = false;    
+        bool_msg.data = balancing_enabled;
+        balancing_get_publisher.publish(&bool_msg);
+    }
+}
+
+void log_balance_params(){
+    nh.loginfo("Balance controller parameters:");
+    dtostrf(balance_controller.w_yeta, 5, 3, yaw_str);
+    dtostrf(balance_controller.w_yeta_dot, 5, 3, pitch_str);
+    dtostrf(balance_controller.w_theta, 5, 3, roll_str);
+    dtostrf(balance_controller.w_theta_dot, 5, 3, d_str);
+    snprintf(buffer, MAX_OUT_CHARS, "a = %s b = %s c = %s d = %s", yaw_str, pitch_str, roll_str, d_str);
+    nh.loginfo(buffer);
+}
+
 // max forward
 // rostopic pub --once /torso_arduino/servo/hip/set std_msgs/Int16 1275
 // max backward
@@ -257,6 +293,12 @@ void on_hip_right_calibrate(const std_msgs::Empty& msg) {
 }
 ros::Subscriber<std_msgs::Empty> on_hip_right_calibrate_sub("hip/right/calibrate", &on_hip_right_calibrate);
 
+// rostopic pub --once /torso_arduino/debug std_msgs/Empty
+void on_debug(const std_msgs::Empty& msg) {
+    log_balance_params();
+}
+ros::Subscriber<std_msgs::Empty> on_debug_sub("debug", &on_debug);
+
 // rostopic pub --once /torso_arduino/hip/left/calibrate std_msgs/Empty
 void on_hip_left_calibrate(const std_msgs::Empty& msg) {
     enable_hip_servos();
@@ -272,6 +314,17 @@ void on_imu_reset(const std_msgs::Empty& msg) {
     nh.loginfo("IMU reset!");
 }
 ros::Subscriber<std_msgs::Empty> on_imu_reset_sub("imu/reset", &on_imu_reset);
+
+// rostopic pub --once /torso_arduino/balancing/set std_msgs/Bool 1
+void on_balancing_set(const std_msgs::Bool& msg) {
+    nh.loginfo("Setting balance flag...");
+    if(msg.data){
+        enable_balancing();
+    }else{
+        disable_balancing();
+    }
+}
+ros::Subscriber<std_msgs::Bool> on_balancing_set_sub("balancing/set", &on_balancing_set);
 
 // move mass backwards
 // rostopic pub --once /torso_arduino/weight/pos/set std_msgs/Int16 900
@@ -310,16 +363,11 @@ ros::Subscriber<std_msgs::Empty> on_imu_reset_sub("imu/reset", &on_imu_reset);
 void on_balance_controller_set(const std_msgs::Float32MultiArray& msg) {
     balance_controller.set_weights(msg.data[0], msg.data[1], msg.data[2], msg.data[3]);
     save_configuration();
-    nh.loginfo("Balance controller parameters changed.");
-    dtostrf(msg.data[0], 5, 3, yaw_str);
-    dtostrf(msg.data[1], 5, 3, pitch_str);
-    dtostrf(msg.data[2], 5, 3, roll_str);
-    dtostrf(msg.data[3], 5, 3, d_str);
-    snprintf(buffer, MAX_OUT_CHARS, "a = %s b = %s c = %s d = %s", yaw_str, pitch_str, roll_str, d_str);
-    nh.loginfo(buffer);
+    log_balance_params();
 }
 ros::Subscriber<std_msgs::Float32MultiArray> on_balance_controller_set_sub("weight/param/set", &on_balance_controller_set);
 
+// rostopic echo /torso_arduino/state
 ros::Publisher state_publisher = ros::Publisher("state", &float32ma_msg);
 
 float get_yeta(){
@@ -365,8 +413,11 @@ void setup() {
     nh.subscribe(on_hip_right_calibrate_sub);
     nh.subscribe(on_hip_left_calibrate_sub);
     nh.subscribe(on_imu_reset_sub);
+    nh.subscribe(on_debug_sub);
+    nh.subscribe(on_balancing_set_sub);
 
     nh.advertise(state_publisher);
+    nh.advertise(balancing_get_publisher);
 
     ag_sensor.initialize();
     if(!ag_sensor.is_ready()){
@@ -408,13 +459,13 @@ void loop() {
             
             // On depress, toggle balancing flag.
             if(balancing_enabled){
-                nh.loginfo("Balancing disabled.");
-                reset_hip_position();
+                disable_balancing();
             }else{
-                nh.loginfo("Balancing enabled.");
-                balancing_started_time = millis();
+                enable_balancing();
             }
-            balancing_enabled = !balancing_enabled;
+            // Publish updated balancing enabled flag.
+            nh.spinOnce();
+            Serial.flush();
         }
     }
     
@@ -425,12 +476,14 @@ void loop() {
     pitch_degrees = -ag_sensor.ypr[1] * 180/M_PI;
     angle_safety_shutoff = pitch_degrees > SERVO_SHUTOFF_BACKWARDS_ANGLE || pitch_degrees < SERVO_SHUTOFF_FORWARDS_ANGLE;
     if(angle_safety_shutoff && balancing_enabled){
-        balancing_enabled = false;
-        balancing_stopped_time = millis();
+        nh.loginfo("Safety shutoff angle exceeded.");
+        disable_balancing();
+        nh.spinOnce();
+        Serial.flush();
     }
     
     // Keep our pitch balanced.
-    if(balancing_enabled){
+    if(balancing_enabled && millis() - servo_last_set_time > 10){ // Update balance 100 times a second.
         // Keep the servos active while we're balancing, so the legs remain straight and stiff.
         //servo_hips_active = true;
         // Get our weight action.
@@ -500,6 +553,7 @@ void loop() {
     foot_tracker.update_position(calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), pitch_degrees));
     
     nh.spinOnce();
+    Serial.flush();
     
     //~ servo_weight_shifter.update();
     if(!servo_hip_left_controller.saved || !servo_hip_right_controller.saved){
@@ -517,6 +571,7 @@ void loop() {
         last_state_publish_time = millis();
     }
     nh.spinOnce();
+    Serial.flush();
 
     last_hip_angle = current_hip_angle;
     disabling_balancing = false;
