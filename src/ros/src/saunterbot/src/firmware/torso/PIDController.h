@@ -7,33 +7,30 @@
 class PIDController{
     
     private:
-    
-        float lastpitch;                // Keeps track of error over time
-        
-        float targetAngle = 0;          // Can be adjusted according to centre of gravity 
 
         unsigned long thisTime = 0;
         unsigned long lastTime = 0;
         
-        int _lower_limit = -255;
-        int _upper_limit = +255;
+        float _lower_limit = -255;
+        float _upper_limit = +255;
         
-        float _scaling_factor = 1.0;
-    
     public:
     
-        float Kp = 0;//7;                   // (P)roportional Tuning Parameter
-        float Ki = 0;//6;                   // (I)ntegral Tuning Parameter        
-        float Kd = 0;//3;                  // (D)erivative Tuning Parameter       
+        float last_actual;                // Keeps track of error over time
+        
+        float target = 0;
+    
+        float Kp = 0;                   // (P)roportional Tuning Parameter
+        float Ki = 0;                   // (I)ntegral Tuning Parameter        
+        float Kd = 0;                  // (D)erivative Tuning Parameter       
         
         float pTerm = 0;
         float iTerm;                    // Used to accumalate error (intergral)
         float dTerm = 0;
         
-        PIDController(int lower_limit, int upper_limit, float scaling_factor=1.0){
+        PIDController(float lower_limit, float upper_limit){
             _lower_limit = lower_limit;
             _upper_limit = upper_limit;
-            _scaling_factor = scaling_factor;
         }
         
         bool is_ready(){
@@ -46,46 +43,34 @@ class PIDController{
             pTerm = 0;
             iTerm = 0;
             dTerm = 0;
-            lastpitch = 0;
+            last_actual = 0;
         }
 
-        int get_value(float pitch) {            
+        float get_value(float actual) {            
 
             // Calculate time since last time PID was called (~10ms)
             //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             thisTime = millis();
-            double timeChange = double(thisTime - lastTime);
+            unsigned long timeChange = thisTime - lastTime;
 
             // Calculate Error
-            float error = targetAngle - pitch;
+            float error = target - actual;
 
             // Calculate our PID terms
             //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             pTerm = Kp * error;
             iTerm += Ki * error * timeChange;
-            dTerm = Kd * (pitch - lastpitch) / timeChange;
+            dTerm = Kd * (actual - last_actual) / timeChange;
 
-            lastpitch = pitch;
+            last_actual = actual;
             lastTime = thisTime;
 
             // Combine terms representing the servo position (range 1000-2000).
             //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             float PIDValue = pTerm + iTerm - dTerm;
-
-            // Limits PID to max motor speed
-            //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            //if (PIDValue > 255) PIDValue = 255;
-            //else if (PIDValue < -255) PIDValue = -255; 
-            //PIDValue = constrain(PIDValue, _lower_limit, _upper_limit);
-            
-            // Scale PID to range when input and output are not the same scale.
-            // For example, if the input is degrees, but output is a servo position, and we're trying to tilt,
-            // outputing a transformed degree as a servo position will lead to choatic results.
-            // However, if we scale the degree to a value that makes it correspond to the servo position scale, the output will be more stable.
-            //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            PIDValue *= _scaling_factor;
             
             // Convert the PID value to the range of the limits.
+            // This is useful when the PID output is to be used in an offset range, which a simple P-controller alone can't handle
             // e.g. the PID natively returns a value centered at 0, but if the servo limits are from 50-100, then return a value centered at 75.
             //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             PIDValue += (_upper_limit - _lower_limit)/2. + _lower_limit;
@@ -93,6 +78,6 @@ class PIDController{
 
             // Return PID Output
             //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            return int(PIDValue);
+            return PIDValue;
         }
 };

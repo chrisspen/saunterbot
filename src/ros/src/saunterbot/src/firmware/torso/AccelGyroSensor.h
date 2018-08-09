@@ -251,6 +251,7 @@ class AccelGyroSensor: public Sensor{
                 last_changed_read = millis();
                 return true;
             }
+            return false;
         }
 
 };

@@ -207,6 +207,7 @@ public:
                 
                 // Calculate velocity, in positions/second.
                 //_pos_velocity = double(_pos_feedback - _last_pos_feedback)/double(millis() - _last_pos_feedback_time)*0.001;
+                // Calculate velocity, in degrees/second.
                 _pos_velocity = float(map(_pos_feedback, _lower_pos, _upper_pos, _lower_degree, _upper_degree) - map(_last_pos_feedback, _lower_pos, _upper_pos, _lower_degree, _upper_degree))/float(millis() - _last_pos_feedback_time)*0.001;
 
                 // Save value for next iteration.
