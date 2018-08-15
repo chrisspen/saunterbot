@@ -129,6 +129,62 @@ module leg_hip_axle(show_axle=0){
     
 }
 
+module leg_hip_axle_round(show_axle=0){
+    axle_offset_z = -22+0.2;
+
+    translate([0,0,axle_offset_z]){
+
+        difference(){
+            union(){
+                difference(){
+                    union(){
+                        rotate([0,90,0]){
+                            translate([0,0,-10/2+0.05]){
+                                // bearing axle
+                                translate([0,0,-11/2])
+                                cylinder(d=7.9-0.5+0.5, h=11, center=true, $fn=50);
+                                // leg axle
+                                color("blue")
+                                translate([0,0,-(11+7)/2])
+                                cylinder(d=6, h=11+7, center=true, $fn=50);
+                            }
+                        }
+                        // hip cap mount
+                        if(0)
+                        color("purple")
+                        translate([-(4+11+7)/2-10-3.5,0,0])
+                        cube([4,4,4], center=true);
+                        
+                        color("purple")
+                        translate([-(4+11+7)/2-10-3.5-.45,0,0])
+                        rotate([0,90,0])
+                        cylinder(d=3, h=4, center=true, $fn=100);
+                    }
+                    
+                    // screw hole
+                    rotate([0,90,0])
+                    color("red")
+                    cylinder(d=2, h=100, center=true, $fn=50);
+                }
+                
+                // bottom mount mass
+                if(1)
+                color("green")
+                translate([-5/2,0,0])
+                cube([5,8,8], center=true);
+                
+            }
+        
+            // axle mounting hole
+            translate([5,0,0])
+            rotate([0,90,0])
+            make_countersink(d1=2.5, d2=5, outer=10, inner=15, $fn=25);
+        }
+    }
+    
+}
+
+
 if(1)
 rotate([0,0,45])
 rotate([0,90,0])

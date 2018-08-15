@@ -71,7 +71,7 @@ module leg_hip_gear_main(teeth=51){
             // servo horn center hole
             color("blue")
             translate([0,0,0])
-            cylinder(d=8, h=50, center=true, $fn=100);
+            cylinder(d=9.5, h=50, center=true, $fn=100);
          
             //placed so a 5mm long, 2mm d screw can attach to it
             if(0)
@@ -80,9 +80,9 @@ module leg_hip_gear_main(teeth=51){
             rotate([180,0,0])
             make_motors_alturn_abrs_5314htg_hv_horn(buffer=0.5);
             
-            // mass cutout
+            // oval mass cutout
             color("red")
-            translate([0,21,0])
+            translate([0,21+2,0])
             scale([1.8,1,1])
             cylinder(d=15, h=50, center=true, $fn=50);
          

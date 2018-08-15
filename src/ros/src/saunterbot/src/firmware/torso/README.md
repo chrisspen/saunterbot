@@ -4,7 +4,7 @@ Build with:
 
 Note, it seems the current wiring configuration, that the Arduino Mega often will not respond to `make upload` when attached to only USB.
 
-It must be powered externally while also being attached via USB.
+IT MUST BE POWERED EXTERNALLY while also being attached via USB.
 
 Usage
 -----

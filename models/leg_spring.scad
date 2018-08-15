@@ -7,8 +7,13 @@ module make_leg_spring_upper(holes=0, track=0){
             cylinder(d=10, h=2, center=true, $fn=100);
             
             // main bar
-            translate([70/2,0,0])
-            cube([70,7.5,2], center=true);
+            translate([70/2-7.5/2/2,0,0])
+            cube([70-7.5/2,7.5,2], center=true);
+                    
+            // rounded bar end
+            //color("red")
+            translate([70-7.5/2,0,0])
+            cylinder(d=7.5, h=2, center=true, $fn=50);
             
             difference(){
                 //spring end stop
@@ -52,6 +57,23 @@ module make_leg_spring_upper(holes=0, track=0){
         color("gray")
         translate([0,0,200/2+7.5-3])
         cube([200,200,200], center=true);
+
+        // Bar tappered edge cutouts.
+        //color("blue")
+        for(i=[-1:2:1])
+        translate([70/2+15,-4.5*i,-2.5])
+        rotate([45,0,0])
+        cube([70, 5, 5], center=true);
+
+        if(track)
+        color("blue")
+        translate([0,0,-1])
+        hull(){
+            translate([-.5*10+25,0,0])
+            cylinder(d=4, h=2, center=true, $fn=100);
+            translate([4*10+25,0,0])
+            cylinder(d=4, h=2, center=true, $fn=100);
+        }
         
     }// end diff
 
@@ -68,8 +90,7 @@ module make_full_spring(extension=0){
 }
 
 if(1){
-translate([0,16,0])
-make_leg_spring_upper(holes=1);
+translate([0,16,0])make_leg_spring_upper(holes=1);
 
 make_leg_spring_upper(track=1);
 }

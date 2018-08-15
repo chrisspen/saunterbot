@@ -24,6 +24,10 @@ private:
     int _default_pos;
     unsigned long _pos_set_time = 0;
     
+    // If non-zero, the number of seconds before powering the servo off after position set.
+    // This is a useful safety mechanism when the servo is under heavy load and we want to auto-shutoff to prevent overheating.
+    unsigned long _power_down_seconds = 0;
+    
     int _weight_pos_sensor_low = -1;
     int _weight_pos_sensor_high = -1;
     int _calibrate_state = SERVO_CALIBRATE_POS_DONE;
@@ -91,6 +95,10 @@ public:
     void set_position(int pos){
         _pos = constrain(pos, _lower_pos, _upper_pos);
         _pos_set_time = millis();
+    }
+    
+    void set_power_down_seconds(unsigned long s){
+        _power_down_seconds = s;
     }
     
     void set_min_position(){
@@ -213,6 +221,11 @@ public:
                 // Save value for next iteration.
                 _last_pos_feedback = _pos_feedback;
                 _last_pos_feedback_time = millis();
+            }
+            
+            // Check for auto-power-down.
+            if(_power_down_seconds && millis() - _pos_set_time >= _power_down_seconds*1000){
+                power_off();
             }
         }
     }

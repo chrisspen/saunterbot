@@ -140,8 +140,12 @@ void reset_hip_position();
 //Servo servo_hip_right;
 //Servo servo_hip_left;
 //ServoController servo_weight_shifter = ServoController(SERVO_WEIGHT_SHIFTER_OUTPUT_PIN, 1000-100, 2000+100, 1500, SERVO_WEIGHT_SHIFTER_INPUT_PIN);
-ServoController servo_hip_right_controller = ServoController(SERVO_HIP_RIGHT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_RIGHT);
-ServoController servo_hip_left_controller = ServoController(SERVO_HIP_LEFT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_LEFT);
+ServoController servo_hip_right_controller = ServoController(SERVO_HIP_RIGHT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_RIGHT_PIN);
+ServoController servo_hip_left_controller = ServoController(SERVO_HIP_LEFT_PIN, 1000, 2000, 1500, FEEDBACK_HIP_LEFT_PIN);
+
+ServoController servo_knee_right_controller = ServoController(SERVO_KNEE_RIGHT_PIN, 1000+50, 2000-50, 1500, FEEDBACK_KNEE_RIGHT_PIN);
+ServoController servo_knee_left_controller = ServoController(SERVO_KNEE_LEFT_PIN, 1000+50, 2000-50, 1500, FEEDBACK_KNEE_LEFT_PIN);
+
 BalanceController balance_controller = BalanceController();
 float balance_action;
 
@@ -355,6 +359,22 @@ void on_servo_hip_set(const std_msgs::Int16& msg) {
     set_hip_position(msg.data, true); // verbosely
 }
 ros::Subscriber<std_msgs::Int16> on_servo_hip_set_sub("servo/hip/set", &on_servo_hip_set);
+
+// rostopic pub --once /torso_arduino/servo/knee/left/set std_msgs/Int16 1460
+void on_servo_knee_left_set(const std_msgs::Int16& msg) {
+    nh.loginfo("Setting left knee position.");
+    servo_knee_left_controller.set_position(msg.data);
+    servo_knee_left_controller.power_on();
+}
+ros::Subscriber<std_msgs::Int16> on_servo_knee_left_set_sub("servo/knee/left/set", &on_servo_knee_left_set);
+
+// rostopic pub --once /torso_arduino/servo/knee/right/set std_msgs/Int16 1460
+void on_servo_knee_right_set(const std_msgs::Int16& msg) {
+    nh.loginfo("Setting right knee position.");
+    servo_knee_right_controller.set_position(msg.data);
+    servo_knee_right_controller.power_on();
+}
+ros::Subscriber<std_msgs::Int16> on_servo_knee_right_set_sub("servo/knee/right/set", &on_servo_knee_right_set);
 
 // rostopic pub --once /torso_arduino/hip/right/calibrate std_msgs/Empty
 void on_hip_right_calibrate(const std_msgs::Empty& msg) {
@@ -578,6 +598,8 @@ void setup() {
     nh.subscribe(on_hip_pid_set_sub);
     nh.subscribe(on_balancing_button_set_sub);
     nh.subscribe(on_upright_set_sub);
+    nh.subscribe(on_servo_knee_left_set_sub);
+    nh.subscribe(on_servo_knee_right_set_sub);
 
     nh.advertise(state_publisher);
     nh.advertise(balancing_get_publisher);
@@ -605,6 +627,8 @@ void setup() {
         configuration.servo_hip_right_lower_pos_feedback,
         configuration.servo_hip_right_upper_pos_feedback
     );
+    
+    //TODO:knee feedback set?
 
     balance_controller.set_weights(
         configuration.w_yeta,
@@ -618,6 +642,9 @@ void setup() {
     hip_pid_controller.Ki = configuration.Ki;
     hip_pid_controller.Kd = configuration.Kd;
     hip_pid_controller.reset();
+    
+    servo_knee_left_controller.set_power_down_seconds(5);
+    servo_knee_right_controller.set_power_down_seconds(5);
 
 }
 
@@ -668,6 +695,8 @@ void loop() {
     last_acc_z = ag_sensor.aaReal.z;
     servo_hip_left_controller.update();
     servo_hip_right_controller.update();
+    servo_knee_left_controller.update();
+    servo_knee_right_controller.update();
     pitch_degrees = -ag_sensor.ypr[1] * 180/M_PI;
     foot_tracker.update_position(calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), pitch_degrees));
     
