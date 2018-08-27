@@ -17,3 +17,5 @@ Pinouts for the Arduino located in the torso.
 #define FEEDBACK_HIP_LEFT_PIN          A5 // FHL
 #define FEEDBACK_KNEE_RIGHT_PIN        A6 // FKR
 #define FEEDBACK_KNEE_LEFT_PIN         A7 // FKL
+#define FEEDBACK_KNEE_DEFLECTION_RIGHT_PIN A8 // KDR
+#define FEEDBACK_KNEE_DEFLECTION_LEFT_PIN A9 // KDL

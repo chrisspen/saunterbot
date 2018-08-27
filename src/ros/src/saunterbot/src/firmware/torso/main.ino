@@ -11,7 +11,7 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/Float32.h>
 
-#include <Servo.h>
+//#include <Servo.h>
 
 #include "ArduinoPinout.h"
 #include "AccelGyroSensor.h"
@@ -20,6 +20,7 @@
 #include "BalanceController.h"
 #include "EEPROMAnything.h"
 #include "VelocityTracker.h"
+#include "ADCTracker.h"
 
 //#define BAUDRATE 115200 // causes occassional "Lost sync with device, restarting" errors?
 //#define BAUDRATE 57600
@@ -81,6 +82,9 @@ VelocityTracker foot_tracker = VelocityTracker();
 
 PIDController hip_pid_controller = PIDController(SERVO_LOWER_PHY_RIGHT, SERVO_UPPER_PHY_LEFT);
 
+ADCTracker knee_left_adc = ADCTracker(FEEDBACK_KNEE_DEFLECTION_LEFT_PIN, true);
+ADCTracker knee_right_adc = ADCTracker(FEEDBACK_KNEE_DEFLECTION_RIGHT_PIN, true);
+
 unsigned long last_ag_read_time = 0;
 unsigned long mpu_read_count = 0;
 unsigned long last_blink_time = 0;
@@ -131,6 +135,13 @@ struct config_t
     float Kp = 0;                   // (P)roportional Tuning Parameter
     float Ki = 0;                   // (I)ntegral Tuning Parameter        
     float Kd = 0;                  // (D)erivative Tuning Parameter       
+    
+    int knee_left_adc_min_value = 10000;
+    int knee_left_adc_max_value = 0;
+    int knee_right_adc_min_value = 10000;
+    int knee_right_adc_max_value = 0;
+    float knee_left_adc_offset = 0;
+    float knee_right_adc_offset = 0;
     
 } configuration;
 
@@ -227,6 +238,14 @@ void save_configuration(){
     configuration.Kp = hip_pid_controller.Kp;
     configuration.Ki = hip_pid_controller.Ki;
     configuration.Kd = hip_pid_controller.Kd;
+
+    configuration.knee_left_adc_min_value = knee_left_adc.min_value;
+    configuration.knee_left_adc_max_value = knee_left_adc.max_value;
+    configuration.knee_left_adc_offset = knee_left_adc.offset;
+
+    configuration.knee_right_adc_min_value = knee_right_adc.min_value;
+    configuration.knee_right_adc_max_value = knee_right_adc.max_value;
+    configuration.knee_right_adc_offset = knee_right_adc.offset;
 
     servo_hip_left_controller.saved = true;
     servo_hip_right_controller.saved = true;
@@ -336,6 +355,21 @@ void log_balance_params(){
     dtostrf(hip_pid_controller.Kd, 5, 3, z_str);
     snprintf(buffer, MAX_OUT_CHARS, "p = %s i = %s d = %s", x_str, y_str, z_str);
     nh.loginfo(buffer);
+
+    dtostrf(knee_left_adc.get_percent(), 5, 3, x_str);
+    dtostrf(knee_left_adc.offset, 5, 3, y_str);
+    snprintf(buffer, MAX_OUT_CHARS,
+        "KDL: min = %i max = %i offset = %s value = %i (%s)",
+        knee_left_adc.min_value, knee_left_adc.max_value, y_str, knee_left_adc.last_value, x_str);
+    nh.loginfo(buffer);
+
+    dtostrf(knee_right_adc.get_percent(), 5, 3, x_str);
+    dtostrf(knee_right_adc.offset, 5, 3, y_str);
+    snprintf(buffer, MAX_OUT_CHARS,
+        "KDR: min = %i max = %i offset = %s value = %i (%s)",
+        knee_right_adc.min_value, knee_right_adc.max_value, y_str, knee_right_adc.last_value, x_str);
+    nh.loginfo(buffer);
+
 }
 
 // max forward
@@ -360,6 +394,26 @@ void on_servo_hip_set(const std_msgs::Int16& msg) {
 }
 ros::Subscriber<std_msgs::Int16> on_servo_hip_set_sub("servo/hip/set", &on_servo_hip_set);
 
+// rostopic pub --once /torso_arduino/knee/adc/reset std_msgs/Empty
+void on_knee_adc_reset(const std_msgs::Empty& msg) {
+    knee_left_adc.reset();
+    knee_right_adc.reset();
+}
+ros::Subscriber<std_msgs::Empty> on_knee_adc_reset_sub("knee/adc/reset", &on_knee_adc_reset);
+
+// rostopic pub --once /torso_arduino/knee/adc/tare std_msgs/Empty
+void on_knee_adc_tare(const std_msgs::Empty& msg) {
+    // When the legs are in physically equal positions, calculate an offset to ensure the sensor readings reflect the equal positions.
+    nh.loginfo("Taring knee ADC.");
+    knee_left_adc.offset = 0;
+    knee_right_adc.offset = 0;
+    float adc_diff = knee_left_adc.get_percent() - knee_right_adc.get_percent();
+    knee_left_adc.offset = -adc_diff/2;
+    knee_right_adc.offset = adc_diff/2;
+    nh.loginfo("Knee ADC tared.");
+}
+ros::Subscriber<std_msgs::Empty> on_knee_adc_tare_sub("knee/adc/tare", &on_knee_adc_tare);
+
 // rostopic pub --once /torso_arduino/servo/knee/left/set std_msgs/Int16 1460
 void on_servo_knee_left_set(const std_msgs::Int16& msg) {
     nh.loginfo("Setting left knee position.");
@@ -371,10 +425,26 @@ ros::Subscriber<std_msgs::Int16> on_servo_knee_left_set_sub("servo/knee/left/set
 // rostopic pub --once /torso_arduino/servo/knee/right/set std_msgs/Int16 1460
 void on_servo_knee_right_set(const std_msgs::Int16& msg) {
     nh.loginfo("Setting right knee position.");
-    servo_knee_right_controller.set_position(msg.data);
+    servo_knee_right_controller.set_position(3000 - msg.data); // inverts in the 1000:2000 range, so scale is the same as the left
     servo_knee_right_controller.power_on();
 }
 ros::Subscriber<std_msgs::Int16> on_servo_knee_right_set_sub("servo/knee/right/set", &on_servo_knee_right_set);
+
+// rostopic pub --once /torso_arduino/servo/knee/both/set std_msgs/Int16 1460
+void on_servo_knee_both_set(const std_msgs::Int16& msg) {
+    if(msg.data >= 1000 && msg.data <= 2000){
+        nh.loginfo("Setting knee positions.");
+        servo_knee_left_controller.set_position(msg.data, 0);
+        servo_knee_right_controller.set_position(3000 - msg.data, 0); // inverts in the 1000:2000 range
+        snprintf(buffer, MAX_OUT_CHARS, "Speed set to %i.", servo_knee_left_controller.get_speed());
+        nh.loginfo(buffer);
+        servo_knee_left_controller.power_on();
+        servo_knee_right_controller.power_on();
+    }else{
+        nh.loginfo("Knee positions out of range.");
+    }
+}
+ros::Subscriber<std_msgs::Int16> on_servo_knee_both_set_sub("servo/knee/both/set", &on_servo_knee_both_set);
 
 // rostopic pub --once /torso_arduino/hip/right/calibrate std_msgs/Empty
 void on_hip_right_calibrate(const std_msgs::Empty& msg) {
@@ -487,6 +557,13 @@ void on_hip_pid_set(const std_msgs::Float32MultiArray& msg) {
 }
 ros::Subscriber<std_msgs::Float32MultiArray> on_hip_pid_set_sub("hip/pid/set", &on_hip_pid_set);
 
+//rostopic pub --once /torso_arduino/config/save std_msgs/Empty
+void on_save_configuration(const std_msgs::Empty& msg) {
+    nh.loginfo("Saving configuration...");
+    save_configuration();
+    nh.loginfo("Configuration saved.");
+}
+ros::Subscriber<std_msgs::Empty> on_save_configuration_sub("config/save", &on_save_configuration);
 
 // rostopic pub --once /torso_arduino/weight/param/set std_msgs/Float32MultiArray "{layout:{dim:[], data_offset: 0}, data:[0, 0, 1, 0, 1]}"
 void on_balance_controller_set(const std_msgs::Float32MultiArray& msg) {
@@ -510,6 +587,12 @@ ros::Subscriber<std_msgs::Float32MultiArray> on_balance_controller_set_sub("weig
 
 // rostopic echo /torso_arduino/state
 ros::Publisher state_publisher = ros::Publisher("state", &float32ma_msg);
+
+// rostopic echo /torso_arduino/knee/right/adc/get
+ros::Publisher knee_right_adc_get_publisher = ros::Publisher("knee/right/adc/get", &int32_msg);
+
+// rostopic echo /torso_arduino/knee/left/adc/get
+ros::Publisher knee_left_adc_get_publisher = ros::Publisher("knee/left/adc/get", &int32_msg);
 
 //float get_yeta(){
     //return servo_hip_right_controller.get_actual_position_degrees() * M_PI/180; // yeta, hip angle, radians
@@ -600,6 +683,10 @@ void setup() {
     nh.subscribe(on_upright_set_sub);
     nh.subscribe(on_servo_knee_left_set_sub);
     nh.subscribe(on_servo_knee_right_set_sub);
+    nh.subscribe(on_servo_knee_both_set_sub);
+    nh.subscribe(on_save_configuration_sub);
+    nh.subscribe(on_knee_adc_reset_sub);
+    nh.subscribe(on_knee_adc_tare_sub);
 
     nh.advertise(state_publisher);
     nh.advertise(balancing_get_publisher);
@@ -609,6 +696,8 @@ void setup() {
     nh.advertise(button_publisher);
     nh.advertise(hip_pid_publisher);
     nh.advertise(balancing_button_publisher);
+    nh.advertise(knee_right_adc_get_publisher);
+    nh.advertise(knee_left_adc_get_publisher);
 
     ag_sensor.initialize();
     if(!ag_sensor.is_ready()){
@@ -643,8 +732,16 @@ void setup() {
     hip_pid_controller.Kd = configuration.Kd;
     hip_pid_controller.reset();
     
-    servo_knee_left_controller.set_power_down_seconds(5);
-    servo_knee_right_controller.set_power_down_seconds(5);
+    servo_knee_left_controller.set_power_down_seconds(10);
+    servo_knee_right_controller.set_power_down_seconds(10);
+    
+    knee_left_adc.min_value = configuration.knee_left_adc_min_value;
+    knee_left_adc.max_value = configuration.knee_left_adc_max_value;
+    knee_left_adc.offset = configuration.knee_left_adc_offset;
+
+    knee_right_adc.min_value = configuration.knee_right_adc_min_value;
+    knee_right_adc.max_value = configuration.knee_right_adc_max_value;
+    knee_right_adc.offset = configuration.knee_right_adc_offset;
 
 }
 
@@ -697,9 +794,24 @@ void loop() {
     servo_hip_right_controller.update();
     servo_knee_left_controller.update();
     servo_knee_right_controller.update();
+    knee_left_adc.update();
+    knee_right_adc.update();
     pitch_degrees = -ag_sensor.ypr[1] * 180/M_PI;
     foot_tracker.update_position(calculate_foot_degrees(servo_hip_right_controller.get_actual_position_degrees(), pitch_degrees));
-    
+
+    if(knee_right_adc.get_and_clear_changed()){
+        int32_msg.data = knee_right_adc.last_value;
+        knee_right_adc_get_publisher.publish(&int32_msg);
+        nh.spinOnce();
+        Serial.flush();
+    }
+    if(knee_left_adc.get_and_clear_changed()){
+        int32_msg.data = knee_left_adc.last_value;
+        knee_left_adc_get_publisher.publish(&int32_msg);
+        nh.spinOnce();
+        Serial.flush();
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Reaction to sensors.
 

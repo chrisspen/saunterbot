@@ -1,5 +1,6 @@
 use <leg_spring2.scad>;
 
+rotate([0,0,90])
 difference(){
     translate([0,0,4/2-0.125])
     rotate([45+180,0,0])

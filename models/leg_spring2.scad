@@ -110,10 +110,10 @@ module make_leg_spring_upper(holes=0, track=0){
 
         // spring end alignent hole
         color("red")
-        rotate([25,0,0])
-        translate([0,-5,0])
+        rotate([0,0,0])
+        translate([15,-5,0])
         rotate([0,90,0])
-        cylinder(d=1.5, h=100, center=true, $fn=50);
+        cylinder(d=1.5, h=15, center=true, $fn=50);
         
     }// end diff
 

@@ -8,7 +8,8 @@
 
 #define SERVO_FEEDBACK_ITERS 10
 
-#include <Servo.h>
+//#include <Servo.h>
+#include <VarSpeedServo.h>
 
 class ServoController{
 
@@ -45,10 +46,12 @@ private:
     int adc_max_value = 0;
     int adc_sum = 0;
     int adc_value;
+    
+    uint8_t _speed = 0; // 0=full, 1=minium, 255=maximum
 
 public:
 
-    Servo _servo;
+    VarSpeedServo _servo;
     bool enabled = false;
     bool feedback_enabled = false;
     unsigned long _calibrate_state_change_time = 0;
@@ -83,8 +86,12 @@ public:
     
     void power_on(){
         enabled = true;
-        _servo.writeMicroseconds(_pos);
         _servo.attach(_pin);
+        _servo.write(_pos, _speed);
+    }
+
+    uint8_t get_speed(){
+        return _speed;
     }
     
     void power_off(){
@@ -92,7 +99,8 @@ public:
         _servo.detach();
     }
     
-    void set_position(int pos){
+    void set_position(int pos, uint8_t speed=128){
+        _speed = speed;
         _pos = constrain(pos, _lower_pos, _upper_pos);
         _pos_set_time = millis();
     }
@@ -181,7 +189,7 @@ public:
             if(_calibrate_state == SERVO_CALIBRATE_POS_GO_CW){
                 // Moving clockwise.
                 _pos = _lower_pos;
-                _servo.writeMicroseconds(_pos);
+                _servo.write(_pos);
                 if(millis() - _calibrate_state_change_time >= 3000){
                     // After 3 seconds, even a slow servo should have received an endstop.
                     // so switch to next state.
@@ -193,7 +201,7 @@ public:
             }else if(_calibrate_state == SERVO_CALIBRATE_POS_GO_CCW){
                 // Moving counter clockwise.
                 _pos = _upper_pos;
-                _servo.writeMicroseconds(_pos);
+                _servo.write(_pos);
                 if(millis() - _calibrate_state_change_time >= 3000){
                     // After 3 seconds, even a slow servo should have received an endstop.
                     // so switch to next state.
@@ -202,11 +210,11 @@ public:
                     _upper_pos_feedback = read_position_feedback();
                     saved = false;
                     _pos = _default_pos;
-                    _servo.writeMicroseconds(_pos);
+                    _servo.write(_pos);
                 }
             }
         }else if(enabled){
-            _servo.writeMicroseconds(_pos);
+            //_servo.write(_pos, _speed); //TODO:fix? interferes with VarSpeedServo interrupts?
             if(feedback_enabled){
                 // Note, due to noise on the line, the measure position can vary by +/- 10 positions.
                 // e.g. If the "true" position is 1500, we might get a reading at 1490 or 1510 or anywhere in between.

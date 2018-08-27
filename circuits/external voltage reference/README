@@ -1,0 +1,7 @@
+Provides a stable high-accuracy voltage reference for the Arduino's ADC, using an LM4040 zener diode circuit.
+
+http://www.skillbank.co.uk/arduino/measure.htm
+
+The Arduino's on-board voltage references have a variance of +/- 5%.
+
+Using the LM4040, it provides a voltage of  4.096V ± 0.2%.
